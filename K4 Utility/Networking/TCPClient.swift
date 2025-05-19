@@ -20,7 +20,7 @@ class TCPClient {
         connection = NWConnection(host: nwEndpoint, port: nwPort, using: .tcp)
 
         connection?.stateUpdateHandler = { state in
-            print("Connection state: \(state)")
+            print("[TCPClient] Connection state: \(state)")
         }
 
         connection?.start(queue: queue)
@@ -30,7 +30,7 @@ class TCPClient {
     func send(_ data: Data) {
         connection?.send(content: data, completion: .contentProcessed({ error in
             if let error = error {
-                print("Send error: \(error)")
+                print("[TCPClient] Send error: \(error)")
             }
         }))
     }
@@ -38,9 +38,10 @@ class TCPClient {
     private func receive() {
         connection?.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, isComplete, error in
             if let data = data {
+                print("[TCPClient] Received \(data.count) bytes")
                 self?.onReceive?(data)
             }
-            if isComplete == false && error == nil {
+            if error == nil {
                 self?.receive() // Continue receiving
             }
         }

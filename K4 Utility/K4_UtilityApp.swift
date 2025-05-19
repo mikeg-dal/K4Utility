@@ -10,11 +10,12 @@ import SwiftUI
 @main
 struct K4_UtilityApp: App {
     @StateObject private var steppirDevice = SteppIRDevice()
+    @StateObject private var k4dDevice = ElecraftK4Device()
 
     var body: some Scene {
         WindowGroup {
-            MainDashboardView(steppirDevice: steppirDevice)
-                
+            MainDashboardView(steppirDevice: steppirDevice, elecraftDevice: k4dDevice)
         }
     }
 }
+

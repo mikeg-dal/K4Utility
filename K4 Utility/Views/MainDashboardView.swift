@@ -7,8 +7,17 @@
 
 import SwiftUI
 
+func formatFrequency(_ hz: Int) -> String {
+    let mhz = hz / 1_000_000
+    let remainder = hz % 1_000_000
+    let khz = remainder / 1_000
+    let hzRemainder = remainder % 1_000
+    return String(format: "%d.%03d.%03d", mhz, khz, hzRemainder)
+}
+
 struct MainDashboardView: View {
     @ObservedObject var steppirDevice: SteppIRDevice
+    @ObservedObject var elecraftDevice: ElecraftK4Device
     @State private var showingSettings = false
     
     var body: some View {
@@ -22,8 +31,8 @@ struct MainDashboardView: View {
                     .font(.headline)
 
                 HStack {
-                    
-                    Text(String(format: "%.3f MHz", Double(steppirDevice.frequencyHz) / 1000.0))
+                    let freq = steppirDevice.frequencyHz
+                    Text(freq > 0 ? String(format: "%.3f MHz", Double(freq) / 1000.0) : "Not Connected")
                         .bold()
                 }
 
@@ -31,6 +40,22 @@ struct MainDashboardView: View {
                     Text("Connected:")
                     Circle()
                         .fill(steppirDevice.isConnected ? Color.green : Color.red)
+                        .frame(width: 12, height: 12)
+                }
+                
+                Text("Elecraft K4D")
+                    .font(.headline)
+
+                HStack {
+                    let k4Freq = elecraftDevice.frequencyHz
+                    Text(k4Freq > 0 ? formatFrequency(k4Freq) : "Not Connected")
+                        .bold()
+                }
+
+                HStack {
+                    Text("Connected:")
+                    Circle()
+                        .fill(elecraftDevice.isConnected ? Color.green : Color.red)
                         .frame(width: 12, height: 12)
                 }
 
@@ -113,6 +138,7 @@ struct MainDashboardView: View {
                 // Removed tuning and gear icon row; now anchored in ZStack
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .padding(.top, 30)
             // Tuning indicator anchored top-right
             VStack {
                 Text("Tuning")
@@ -123,23 +149,27 @@ struct MainDashboardView: View {
                     .frame(width: 12, height: 12)
             }
             .padding()
+            .padding(.top, 150)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 
             // Settings gear icon anchored bottom-right
-            VStack {
-                Button(action: {
-                    showingSettings.toggle()
-                }) {
-                    Image(systemName: "gearshape")
-                        .imageScale(.large)
+            ZStack {
+                VStack {
+                    Button(action: {
+                        showingSettings.toggle()
+                    }) {
+                        Image(systemName: "gearshape")
+                            .imageScale(.large)
+                    }
+                    .frame(width: 36, height: 36)
+                    .background(Color.gray)
+                    .foregroundColor(.white)
+                    .clipShape(Circle())
+                    .sheet(isPresented: $showingSettings) {
+                        DeviceConfigView(steppirDevice: steppirDevice, elecraftDevice: elecraftDevice)
+                    }
                 }
-                .frame(width: 36, height: 36)
-                .background(Color.gray)
-                .foregroundColor(.white)
-                .clipShape(Circle())
-                .sheet(isPresented: $showingSettings) {
-                    DeviceConfigView(steppirDevice: steppirDevice)
-                }
+                .padding(.bottom, 30)
             }
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -148,6 +178,3 @@ struct MainDashboardView: View {
   
     }
 
-#Preview {
-    MainDashboardView(steppirDevice: SteppIRDevice())
-}

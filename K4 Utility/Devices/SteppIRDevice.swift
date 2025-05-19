@@ -217,3 +217,10 @@ class SteppIRDevice: ObservableObject {
         }
     }
 }
+
+extension SteppIRDevice {
+    func updateConnectionDetails(ipAddress: String, port: Int) {
+        self.ipAddress = ipAddress
+        self.port = port
+    }
+}
