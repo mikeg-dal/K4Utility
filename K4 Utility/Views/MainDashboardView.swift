@@ -26,36 +26,30 @@ struct MainDashboardView: View {
 
             // Top-left info panel
             VStack(alignment: .leading, spacing: 12) {
-                Text("SteppIR")
-                    .font(.headline)
-
+                HStack {
+                    Circle()
+                        .fill(steppirDevice.isConnected ? Color.green : Color.red)
+                        .frame(width: 12, height: 12)
+                    Text("SteppIR")
+                        .font(.headline)
+                }
                 HStack {
                     let freq = steppirDevice.frequencyHz
                     Text(freq > 0 ? String(format: "%.3f MHz", Double(freq) / 1000.0) : "Not Connected")
                         .bold()
                 }
-
-                HStack {
-                    Text("Connected:")
-                    Circle()
-                        .fill(steppirDevice.isConnected ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
-                }
                 
-                Text("Elecraft K4D")
-                    .font(.headline)
-
+                HStack {
+                    Circle()
+                        .fill(elecraftDevice.isConnected ? Color.green : Color.red)
+                        .frame(width: 12, height: 12)
+                    Text("Elecraft K4D")
+                        .font(.headline)
+                }
                 HStack {
                     let k4Freq = elecraftDevice.frequencyHz
                     Text(k4Freq > 0 ? formatFrequency(k4Freq) : "Not Connected")
                         .bold()
-                }
-
-                HStack {
-                    Text("Connected:")
-                    Circle()
-                        .fill(elecraftDevice.isConnected ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
                 }
 
                 VStack(spacing: 6) {
@@ -67,6 +61,14 @@ struct MainDashboardView: View {
                     }
                     Button("Calibrate") {
                         steppirDevice.setCalibrate()
+                    }
+                    Button("Send K4 Frequency") {
+                        let rawHz = elecraftDevice.frequencyHz
+                        let rawKHz = rawHz / 1000
+                        let truncatedKHz = (rawKHz / 10) * 10
+                        // Use kHz as the frequency value so that hex creation matches SteppIR logic
+                        steppirDevice.setFrequency(truncatedKHz)
+                        steppirDevice.setDirection(steppirDevice.direction)
                     }
                 }
                 .font(.caption)
@@ -134,10 +136,10 @@ struct MainDashboardView: View {
                     }
                 }
 
-                // Removed tuning and gear icon row; now anchored in ZStack
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .padding(.top, 30)
+           
             // Tuning indicator anchored top-right
             VStack {
                 Text("Tuning")
@@ -151,7 +153,6 @@ struct MainDashboardView: View {
             .padding(.top, 150)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 
-            // Settings gear icon anchored bottom-right using SettingsLink (macOS 14+)
             SettingsLink {
                 Image(systemName: "gearshape")
                     .imageScale(.large)
