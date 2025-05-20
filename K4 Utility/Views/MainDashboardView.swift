@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 func formatFrequency(_ hz: Int) -> String {
     let mhz = hz / 1_000_000
@@ -164,6 +165,15 @@ struct MainDashboardView: View {
             .padding(.bottom, 30)
             .padding(.trailing, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        }
+        .onReceive(
+            elecraftDevice.$frequencyHz
+                .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
+        ) { newHz in
+            let rawKHz = newHz / 1000
+            let truncatedKHz = (rawKHz / 10) * 10
+            steppirDevice.setFrequency(truncatedKHz)
+            steppirDevice.setDirection(steppirDevice.direction)
         }
     }
   
