@@ -1,5 +1,5 @@
 //
-//  DeviceConfigView.swift
+//  MainDashboardView.swift
 //  K4 Utility
 //
 //  Created by Mike Garcia on 5/18/25.
@@ -18,7 +18,6 @@ func formatFrequency(_ hz: Int) -> String {
 struct MainDashboardView: View {
     @ObservedObject var steppirDevice: SteppIRDevice
     @ObservedObject var elecraftDevice: ElecraftK4Device
-    @State private var showingSettings = false
     
     var body: some View {
         ZStack {
@@ -152,29 +151,19 @@ struct MainDashboardView: View {
             .padding(.top, 150)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 
-            // Settings gear icon anchored bottom-right
-            ZStack {
-                VStack {
-                    Button(action: {
-                        showingSettings.toggle()
-                    }) {
-                        Image(systemName: "gearshape")
-                            .imageScale(.large)
-                    }
+            // Settings gear icon anchored bottom-right using SettingsLink (macOS 14+)
+            SettingsLink {
+                Image(systemName: "gearshape")
+                    .imageScale(.large)
                     .frame(width: 36, height: 36)
                     .background(Color.gray)
                     .foregroundColor(.white)
                     .clipShape(Circle())
-                    .sheet(isPresented: $showingSettings) {
-                        DeviceConfigView(steppirDevice: steppirDevice, elecraftDevice: elecraftDevice)
-                    }
-                }
-                .padding(.bottom, 30)
             }
-            .padding()
+            .padding(.bottom, 30)
+            .padding(.trailing, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
     }
   
     }
-

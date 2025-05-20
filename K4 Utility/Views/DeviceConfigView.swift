@@ -1,3 +1,6 @@
+// DeviceConfigView.swift
+
+
 import SwiftUI
 
 struct DeviceConfigView: View {

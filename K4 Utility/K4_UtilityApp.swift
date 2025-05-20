@@ -16,6 +16,11 @@ struct K4_UtilityApp: App {
         WindowGroup {
             MainDashboardView(steppirDevice: steppirDevice, elecraftDevice: k4dDevice)
         }
+        Settings {
+            DeviceConfigView(
+                steppirDevice: steppirDevice,
+                elecraftDevice: k4dDevice
+            )
+        }
     }
 }
-
