@@ -11,15 +11,21 @@ import SwiftUI
 struct K4_UtilityApp: App {
     @StateObject private var steppirDevice = SteppIRDevice()
     @StateObject private var k4dDevice = ElecraftK4Device()
+    @StateObject private var kpaDevice = ElecraftKPA1500Device()
 
     var body: some Scene {
         WindowGroup {
-            MainDashboardView(steppirDevice: steppirDevice, elecraftDevice: k4dDevice)
+            MainDashboardView(
+                steppirDevice: steppirDevice,
+                elecraftDevice: k4dDevice,
+                kpaDevice: kpaDevice
+            )
         }
         Settings {
-            DeviceConfigView(
+            DeviceSettingsView(
                 steppirDevice: steppirDevice,
-                elecraftDevice: k4dDevice
+                elecraftDevice: k4dDevice,
+                kpaDevice: kpaDevice
             )
         }
     }

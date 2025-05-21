@@ -19,6 +19,7 @@ func formatFrequency(_ hz: Int) -> String {
 struct MainDashboardView: View {
     @ObservedObject var steppirDevice: SteppIRDevice
     @ObservedObject var elecraftDevice: ElecraftK4Device
+    @ObservedObject var kpaDevice: ElecraftKPA1500Device
     
     var body: some View {
         ZStack {
