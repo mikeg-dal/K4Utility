@@ -23,8 +23,10 @@ struct ElecraftK4DashboardView: View {
 
             // Frequency display
             HStack {
-                let display = device.currentFrequencyDisplay
-                Text(!display.isEmpty ? display : "Not Connected")
+                let hz = device.frequencyHz
+                Text(hz > 0
+                     ? "\(formatFrequency(hz)) MHz"
+                     : "Not Connected")
                     .bold()
             }
         }

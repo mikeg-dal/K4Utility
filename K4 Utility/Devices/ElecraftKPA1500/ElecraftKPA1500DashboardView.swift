@@ -17,15 +17,18 @@ struct ElecraftKPA1500DashboardView: View {
                 Circle()
                     .fill(device.isConnected ? Color.green : Color.red)
                     .frame(width: 12, height: 12)
-                Text("KPA-1500")
+                Text("KPA1500")
                     .font(.headline)
             }
 
-            // Band & mode
+            // Band
             HStack {
                 Text("Band: \(device.currentBand.isEmpty ? "–" : device.currentBand)")
                     .font(.subheadline)
-                Spacer()
+            }
+
+            // Mode
+            HStack {
                 Text("Mode: \(device.operateMode)")
                     .font(.subheadline)
             }
