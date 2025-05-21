@@ -11,6 +11,7 @@ struct MainDashboardView: View {
     @ObservedObject var steppirDevice: SteppIRDevice
     @ObservedObject var elecraftDevice: ElecraftK4Device
     @ObservedObject var kpaDevice: ElecraftKPA1500Device
+    @ObservedObject var rotatorDevice: GHRT21Device
     
     var body: some View {
         ZStack {
@@ -22,6 +23,7 @@ struct MainDashboardView: View {
                 HStack(alignment: .top, spacing: 12) {
                     SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
                     ElecraftKPA1500DashboardView(device: kpaDevice)
+                    GHRT21DashboardView(device: rotatorDevice)
                 }
 
                 ElecraftK4DashboardView(device: elecraftDevice)

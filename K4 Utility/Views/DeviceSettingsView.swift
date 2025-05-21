@@ -11,6 +11,7 @@ struct DeviceSettingsView: View {
     @ObservedObject var steppirDevice: SteppIRDevice
     @ObservedObject var elecraftDevice: ElecraftK4Device
     @ObservedObject var kpaDevice: ElecraftKPA1500Device
+    @ObservedObject var rotatorDevice: GHRT21Device
 
 
     var body: some View {
@@ -34,6 +35,12 @@ struct DeviceSettingsView: View {
             .tabItem {
                 Label("KPA1500", systemImage: "bolt.fill")
             }
+
+            // GreenHeron rotator tab
+            GHRT21ConfigView(device: rotatorDevice)
+                .tabItem {
+                    Label("GreenHeron", systemImage: "arrow.triangle.2.circlepath")
+                }
         }
         .frame(minWidth: 350, maxWidth: 400, minHeight: 240)
         .padding()
@@ -46,7 +53,8 @@ struct DeviceSettingsView_Previews: PreviewProvider {
         DeviceSettingsView(
             steppirDevice: SteppIRDevice(),
             elecraftDevice: ElecraftK4Device(),
-            kpaDevice: ElecraftKPA1500Device()
+            kpaDevice: ElecraftKPA1500Device(),
+            rotatorDevice: GHRT21Device()
         )
     }
 }

@@ -1,4 +1,3 @@
-
 //
 //  GHRT21Device.swift
 //  K4 Utility
@@ -75,9 +74,17 @@ class GHRT21Device: ObservableObject {
 
     /// Handles raw incoming data, accumulating until semicolon terminator
     private func handleIncoming(data: Data) {
+        log("📡 GHRT21: Received \(data.count) bytes: \(data as NSData)")
+        if let asciiChunk = String(data: data, encoding: .ascii) {
+            log("🔤 GHRT21 ASCII chunk: \(asciiChunk)")
+        }
         buffer.append(data)
         while let idx = buffer.firstIndex(of: UInt8(ascii: ";")) {
             let frameData = buffer.subdata(in: 0..<idx)
+            log("🔍 GHRT21: Frame bytes: \(frameData as NSData)")
+            if let asciiFrame = String(data: frameData, encoding: .ascii) {
+                log("🔤 GHRT21 ASCII frame: \(asciiFrame)")
+            }
             buffer.removeSubrange(0...idx)
             if let str = String(data: frameData, encoding: .ascii) {
                 DispatchQueue.main.async {
