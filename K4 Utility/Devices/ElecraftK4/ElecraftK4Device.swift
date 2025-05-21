@@ -13,6 +13,14 @@ class ElecraftK4Device: ObservableObject {
     @Published var currentFrequencyDisplay: String = ""
     @Published var isConnected: Bool = false
 
+    @Published var debugEnabled: Bool = true
+
+    private func log(_ message: String) {
+        if debugEnabled {
+            print(message)
+        }
+    }
+
      var client: TCPClient?
      var ipAddress: String
      var port: Int
@@ -24,7 +32,7 @@ class ElecraftK4Device: ObservableObject {
     }
 
     func startConnection() {
-        print("ElecraftK4Device: Starting connection to \(ipAddress):\(port)")
+        log("🚀 K4D: Starting connection to \(ipAddress):\(port)")
         client = TCPClient()
         client?.onReceive = { [weak self] data in
             self?.handleIncoming(data: data)
@@ -40,7 +48,7 @@ class ElecraftK4Device: ObservableObject {
     }
 
     func stopConnection() {
-        print("ElecraftK4Device: Disconnecting")
+        log("🔌 K4D: Disconnecting")
         client?.disconnect()
         isConnected = false
     }
@@ -57,7 +65,7 @@ class ElecraftK4Device: ObservableObject {
                     DispatchQueue.main.async {
                         self.frequencyHz = freq
                         self.currentFrequencyDisplay = freqStr
-                        print("ElecraftK4Device: Received FA frequency update: \(freq)")
+                        self.log("📥 K4D: Received FA frequency update: \(freq)")
                     }
                 }
             }
@@ -69,7 +77,7 @@ class ElecraftK4Device: ObservableObject {
     }
 
     func sendCommand(_ command: String) {
-        print("ElecraftK4Device: Sending command: \(command)")
+        log("📤 K4D: Sending command: \(command)")
         guard let data = (command + "\r").data(using: .utf8) else { return }
         client?.send(data)
     }

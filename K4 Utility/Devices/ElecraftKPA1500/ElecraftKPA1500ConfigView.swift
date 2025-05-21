@@ -12,7 +12,11 @@ struct ElecraftKPA1500ConfigView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Elecraft KPA-1500 Configuration").font(.headline)) {
+            // remove the @State declaration entirely
+
+            Toggle("Debug", isOn: $device.debugEnabled)
+                .padding(.bottom, 8)
+            Section {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 16) {
                         TextField("IP Address", text: $device.ipAddress)
