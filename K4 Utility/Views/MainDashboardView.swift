@@ -28,31 +28,9 @@ struct MainDashboardView: View {
 
             // Top-left info panel
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Circle()
-                        .fill(steppirDevice.isConnected ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
-                    Text("SteppIR")
-                        .font(.headline)
-                }
-                HStack {
-                    let freq = steppirDevice.frequencyHz
-                    Text(freq > 0 ? String(format: "%.3f MHz", Double(freq) / 1000.0) : "Not Connected")
-                        .bold()
-                }
-                
-                HStack {
-                    Circle()
-                        .fill(elecraftDevice.isConnected ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
-                    Text("Elecraft K4D")
-                        .font(.headline)
-                }
-                HStack {
-                    let k4Freq = elecraftDevice.frequencyHz
-                    Text(k4Freq > 0 ? formatFrequency(k4Freq) : "Not Connected")
-                        .bold()
-                }
+                SteppIRDashboardView(device: steppirDevice)
+                ElecraftK4DashboardView(device: elecraftDevice)
+                ElecraftKPA1500DashboardView(device: kpaDevice)
 
                 VStack(spacing: 6) {
                     Button("Home") {
