@@ -9,6 +9,23 @@ import Foundation
 import Network
 
 class TCPClient {
+    // MARK: - Debug Control
+    private static var debugUsageCount: Int = 0
+    static var debugEnabled: Bool {
+        return debugUsageCount > 0
+    }
+    static func enableDebug() {
+        debugUsageCount += 1
+    }
+    static func disableDebug() {
+        debugUsageCount = max(0, debugUsageCount - 1)
+    }
+    private static func log(_ message: String) {
+        if debugEnabled {
+            print("📡 TCPClient: \(message)")
+        }
+    }
+
     private var connection: NWConnection?
     private let queue = DispatchQueue(label: "TCPClientQueue")
 
@@ -20,7 +37,7 @@ class TCPClient {
         connection = NWConnection(host: nwEndpoint, port: nwPort, using: .tcp)
 
         connection?.stateUpdateHandler = { state in
-            print("[TCPClient] Connection state: \(state)")
+            TCPClient.log("Connection state: \(state)")
         }
 
         connection?.start(queue: queue)
@@ -30,7 +47,7 @@ class TCPClient {
     func send(_ data: Data) {
         connection?.send(content: data, completion: .contentProcessed({ error in
             if let error = error {
-                print("[TCPClient] Send error: \(error)")
+                TCPClient.log("Send error: \(error)")
             }
         }))
     }
@@ -38,7 +55,7 @@ class TCPClient {
     private func receive() {
         connection?.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, isComplete, error in
             if let data = data {
-                print("[TCPClient] Received \(data.count) bytes")
+                TCPClient.log("Received \(data.count) bytes")
                 self?.onReceive?(data)
             }
             if error == nil {

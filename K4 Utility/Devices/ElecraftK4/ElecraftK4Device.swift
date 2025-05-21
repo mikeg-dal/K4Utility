@@ -13,7 +13,15 @@ class ElecraftK4Device: ObservableObject {
     @Published var currentFrequencyDisplay: String = ""
     @Published var isConnected: Bool = false
 
-    @Published var debugEnabled: Bool = true
+    @Published var debugEnabled: Bool = false {
+        didSet {
+            if debugEnabled {
+                TCPClient.enableDebug()
+            } else {
+                TCPClient.disableDebug()
+            }
+        }
+    }
 
     private func log(_ message: String) {
         if debugEnabled {

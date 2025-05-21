@@ -5,8 +5,6 @@
 //  Created by Mike Garcia on 5/20/25.
 //
 
-// ElecraftKPA1500Device.swift
-// Handles TCP/IP communication and publishes metrics
 import Foundation
 import Combine
 
@@ -39,7 +37,15 @@ class ElecraftKPA1500Device: ObservableObject {
         didSet { log("🔌 KPA1500: paCurrent changed to \(paCurrent) A") }
     }
 
-    @Published var debugEnabled: Bool = true
+    @Published var debugEnabled: Bool = false {
+        didSet {
+            if debugEnabled {
+                TCPClient.enableDebug()
+            } else {
+                TCPClient.disableDebug()
+            }
+        }
+    }
 
     private func log(_ message: String) {
         if debugEnabled {
@@ -124,8 +130,8 @@ class ElecraftKPA1500Device: ObservableObject {
                 self.log("🔢 KPA1500: Band = \(self.currentBand)")
 
             case frame.hasPrefix("^OS"):
-                let mode = frame.dropFirst(3)
-                self.operateMode = (mode == "O") ? "Operate" : "Standby"
+                let code = frame.dropFirst(3)
+                self.operateMode = (code == "1") ? "Operate" : "Standby"
                 self.log("🟢 KPA1500: Mode = \(self.operateMode)")
 
             case frame.hasPrefix("^AI"):

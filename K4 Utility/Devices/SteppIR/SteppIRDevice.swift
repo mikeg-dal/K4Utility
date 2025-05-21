@@ -14,7 +14,15 @@ class SteppIRDevice: ObservableObject {
     @Published var isTrackingEnabled: Bool = false
     @Published var isConnected: Bool = false
     @Published var tuningStatus: Bool = false
-    @Published var debugEnabled: Bool = true
+    @Published var debugEnabled: Bool = false {
+        didSet {
+            if debugEnabled {
+                TCPClient.enableDebug()
+            } else {
+                TCPClient.disableDebug()
+            }
+        }
+    }
 
     private func log(_ message: String) {
         if debugEnabled {

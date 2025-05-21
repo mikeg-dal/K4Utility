@@ -4,9 +4,6 @@
 //
 //  Created by Mike Garcia on 5/21/25.
 //
-// ElecraftK4ConfigView.swift
-// K4 Utility
-
 import SwiftUI
 
 struct ElecraftK4ConfigView: View {
