@@ -6,15 +6,6 @@
 //
 
 import SwiftUI
-import Combine
-
-func formatFrequency(_ hz: Int) -> String {
-    let mhz = hz / 1_000_000
-    let remainder = hz % 1_000_000
-    let khz = remainder / 1_000
-    let hzRemainder = remainder % 1_000
-    return String(format: "%d.%03d.%03d", mhz, khz, hzRemainder)
-}
 
 struct MainDashboardView: View {
     @ObservedObject var steppirDevice: SteppIRDevice
@@ -28,9 +19,12 @@ struct MainDashboardView: View {
 
             // Top-left info panel
             VStack(alignment: .leading, spacing: 12) {
-                SteppIRDashboardView(device: steppirDevice)
+                HStack(alignment: .top, spacing: 12) {
+                    SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
+                    ElecraftKPA1500DashboardView(device: kpaDevice)
+                }
+
                 ElecraftK4DashboardView(device: elecraftDevice)
-                ElecraftKPA1500DashboardView(device: kpaDevice)
             }
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -46,15 +40,6 @@ struct MainDashboardView: View {
             .padding(.bottom, 30)
             .padding(.trailing, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-        }
-        .onReceive(
-            elecraftDevice.$frequencyHz
-                .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
-        ) { newHz in
-            let rawKHz = newHz / 1000
-            let truncatedKHz = (rawKHz / 10) * 10
-            steppirDevice.setFrequency(truncatedKHz)
-            steppirDevice.setDirection(steppirDevice.direction)
         }
     }
   

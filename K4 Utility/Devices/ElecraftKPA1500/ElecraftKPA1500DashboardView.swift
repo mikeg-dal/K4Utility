@@ -11,9 +11,9 @@ struct ElecraftKPA1500DashboardView: View {
     @ObservedObject var device: ElecraftKPA1500Device
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             // Connection status
-            HStack {
+            HStack(spacing: 8) {
                 Circle()
                     .fill(device.isConnected ? Color.green : Color.red)
                     .frame(width: 12, height: 12)
@@ -41,15 +41,35 @@ struct ElecraftKPA1500DashboardView: View {
                     .font(.caption)
             }
 
-            // Voltage & current
-            HStack(spacing: 16) {
-                Text(String(format: "V: %.1f V", device.paVoltage))
-                    .font(.caption)
-                Text(String(format: "I: %.2f A", device.paCurrent))
-                    .font(.caption)
-            }
+            // Forward power meter
+            GradientMeterView(value: device.forwardPower,
+                              minValue: 0,
+                              maxValue: 1500)
+                .frame(width: 200, height: 16)
+                .animation(.easeOut(duration: 0.5), value: device.forwardPower)
+                .cornerRadius(8)
+
+            // Meter value label
+            Text(String(format: "%.0f W", device.forwardPower))
+                .font(.caption)
+
+            // SWR meter
+            GradientMeterView(value: device.swr,
+                              minValue: 1.0,
+                              maxValue: 5.0)
+                .frame(width: 200, height: 16)
+                .animation(.easeOut(duration: 0.5), value: device.swr)
+                .cornerRadius(8)
+
+            // Meter value label for SWR
+            Text(String(format: "SWR: %.1f", device.swr))
+                .font(.caption)
         }
         .padding(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white, lineWidth: 2)
+        )
     }
 }
 

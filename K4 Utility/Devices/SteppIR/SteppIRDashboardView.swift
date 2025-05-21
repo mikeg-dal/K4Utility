@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import Combine
 
 struct SteppIRDashboardView: View {
     @ObservedObject var device: SteppIRDevice
+    @ObservedObject var k4Device: ElecraftK4Device
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -35,27 +37,69 @@ struct SteppIRDashboardView: View {
                 let hz = device.frequencyHz
                 Text(hz > 0
                      ? String(format: "%.3f MHz", Double(hz) / 1000.0)
-                     : "Not Connected")
+                     : "")
                     .bold()
             }
 
-            // Control buttons
-            HStack(spacing: 8) {
-                Button("Home") {
-                    device.setHome()
+            // Control & direction buttons (2 rows with individual highlights)
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Button("Norm") {
+                        device.setDirection("Normal")
+                    }
+                    .font(.caption)
+                    .padding(6)
+                    .background(device.direction == "Normal" ? Color.green : Color.gray)
+                    .foregroundColor(.white)
+                    .cornerRadius(13)
+
+                    Button("180") {
+                        device.setDirection("180")
+                    }
+                    .font(.caption)
+                    .padding(6)
+                    .background(device.direction == "180" ? Color.green : Color.gray)
+                    .foregroundColor(.white)
+                    .cornerRadius(13)
+
+                    Button("BID") {
+                        device.setDirection("BID")
+                    }
+                    .font(.caption)
+                    .padding(6)
+                    .background(device.direction == "BID" ? Color.green : Color.gray)
+                    .foregroundColor(.white)
+                    .cornerRadius(13)
                 }
-                Button(device.isTrackingEnabled ? "Auto On" : "Auto Off") {
-                    device.setAuto(enabled: !device.isTrackingEnabled)
-                }
-                Button("Calibrate") {
-                    device.setCalibrate()
+                HStack(spacing: 8) {
+                    Button("Home") {
+                        device.setHome()
+                    }
+                    .font(.caption)
+                    .padding(6)
+                    .background(Color.gray)
+                    .foregroundColor(.white)
+                    .cornerRadius(13)
+
+                    Button(device.isTrackingEnabled ? "Auto On" : "Auto Off") {
+                        device.setAuto(enabled: !device.isTrackingEnabled)
+                    }
+                    .font(.caption)
+                    .padding(6)
+                    .background(device.isTrackingEnabled ? Color.green : Color.gray)
+                    .foregroundColor(.white)
+                    .cornerRadius(13)
+
+                    Button("Calibrate") {
+                        device.setCalibrate()
+                    }
+                    .font(.caption)
+                    .padding(6)
+                    .background(Color.gray)
+                    .foregroundColor(.white)
+                    .cornerRadius(13)
                 }
             }
-            .font(.caption)
-            .padding(6)
-            .background(Color.gray)
-            .foregroundColor(.white)
-            .cornerRadius(13)
 
             // Band preset buttons
             VStack(spacing: 8) {
@@ -92,25 +136,21 @@ struct SteppIRDashboardView: View {
                     }
                 }
             }
-
-            // Direction buttons
-            HStack(spacing: 8) {
-                ForEach(["Norm", "180", "BID", "3/4"], id: \.self) { dir in
-                    Button(dir) {
-                        let mapped = dir == "Norm" ? "Normal" : dir
-                        device.setDirection(mapped)
-                    }
-                    .frame(width: 50)
-                    .font(.caption)
-                    .padding(6)
-                    .background(device.direction == (dir == "Norm" ? "Normal" : dir) ? Color.green : Color.gray)
-                    .foregroundColor(.white)
-                    .cornerRadius(13)
-                }
-            }
-
-            // Tuning indicator
         }
         .padding(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white, lineWidth: 2)
+        )
+        // Auto-sync SteppIR to K4 frequency
+        .onReceive(
+            k4Device.$frequencyHz
+                .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
+        ) { newHz in
+            let rawKHz = newHz / 1000
+            let truncatedKHz = (rawKHz / 10) * 10
+            device.setFrequency(truncatedKHz)
+            device.setDirection(device.direction)
+        }
     }
 }

@@ -5,10 +5,20 @@
 // Created by Mike Garcia on 5/21/25.
 //
 
+
 import SwiftUI
+
 
 struct ElecraftK4DashboardView: View {
     @ObservedObject var device: ElecraftK4Device
+
+    private func formatFrequency(_ hz: Int) -> String {
+        let mhz = hz / 1_000_000
+        let remainder = hz % 1_000_000
+        let khz = remainder / 1_000
+        let hzRemainder = remainder % 1_000
+        return String(format: "%d.%03d.%03d", mhz, khz, hzRemainder)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -17,7 +27,7 @@ struct ElecraftK4DashboardView: View {
                 Circle()
                     .fill(device.isConnected ? Color.green : Color.red)
                     .frame(width: 12, height: 12)
-                Text("Elecraft K4D")
+                Text("K4D")
                     .font(.headline)
             }
 
@@ -26,7 +36,7 @@ struct ElecraftK4DashboardView: View {
                 let hz = device.frequencyHz
                 Text(hz > 0
                      ? "\(formatFrequency(hz)) MHz"
-                     : "Not Connected")
+                     : "")
                     .bold()
             }
         }
