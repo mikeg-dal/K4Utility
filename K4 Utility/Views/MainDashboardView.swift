@@ -15,7 +15,7 @@ struct MainDashboardView: View {
     
     var body: some View {
         ZStack {
-            Color(.windowBackgroundColor)
+            Color(red: 37/255, green: 37/255, blue: 37/255)
                 .ignoresSafeArea()
 
             // Top-left info panel
@@ -44,5 +44,17 @@ struct MainDashboardView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
     }
+#if DEBUG
+struct MainDashboardView_Previews: PreviewProvider {
+    static var previews: some View {
+        MainDashboardView(
+            steppirDevice: SteppIRDevice(),
+            elecraftDevice: ElecraftK4Device(),
+            kpaDevice: ElecraftKPA1500Device(),
+            rotatorDevice: GHRT21Device()
+        )
+    }
+}
+#endif
   
     }

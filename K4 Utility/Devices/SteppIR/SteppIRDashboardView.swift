@@ -49,27 +49,36 @@ struct SteppIRDashboardView: View {
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(device.direction == "Normal" ? Color.green : Color.gray)
+                    .background(device.direction == "Normal"
+                        ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                        : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
                     .cornerRadius(13)
+                    .buttonStyle(PlainButtonStyle())
 
                     Button("180") {
                         device.setDirection("180")
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(device.direction == "180" ? Color.green : Color.gray)
+                    .background(device.direction == "180"
+                        ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                        : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
                     .cornerRadius(13)
+                    .buttonStyle(PlainButtonStyle())
 
                     Button("BID") {
                         device.setDirection("BID")
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(device.direction == "BID" ? Color.green : Color.gray)
+                    .background(device.direction == "BID"
+                        ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                        : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
                     .cornerRadius(13)
+                    .buttonStyle(PlainButtonStyle())
                 }
                 HStack(spacing: 8) {
                     Button("Home") {
@@ -77,27 +86,32 @@ struct SteppIRDashboardView: View {
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(Color.gray)
+                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
                     .cornerRadius(13)
+                    .buttonStyle(PlainButtonStyle())
 
                     Button(device.isTrackingEnabled ? "Auto On" : "Auto Off") {
                         device.setAuto(enabled: !device.isTrackingEnabled)
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(device.isTrackingEnabled ? Color.green : Color.gray)
+                    .background(device.isTrackingEnabled
+                        ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                        : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
                     .cornerRadius(13)
+                    .buttonStyle(PlainButtonStyle())
 
                     Button("Calibrate") {
                         device.setCalibrate()
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(Color.gray)
+                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
                     .cornerRadius(13)
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
 
@@ -114,7 +128,9 @@ struct SteppIRDashboardView: View {
                         .frame(minWidth: 30)
                         .font(.caption2)
                         .padding(3)
-                        .background(isActive ? Color.green : Color.gray)
+                        .background(isActive
+                            ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                            : Color(red: 61/255, green: 61/255, blue: 61/255))
                         .foregroundColor(.white)
                         .cornerRadius(13)
                     }
@@ -130,7 +146,9 @@ struct SteppIRDashboardView: View {
                         .frame(minWidth: 30)
                         .font(.caption2)
                         .padding(3)
-                        .background(isActive ? Color.green : Color.gray)
+                        .background(isActive
+                            ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                            : Color(red: 61/255, green: 61/255, blue: 61/255))
                         .foregroundColor(.white)
                         .cornerRadius(13)
                     }
