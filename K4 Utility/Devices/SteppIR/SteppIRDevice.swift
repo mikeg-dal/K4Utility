@@ -231,6 +231,8 @@ class SteppIRDevice: ObservableObject {
             client?.send(data)
         }
     }
+
+
 }
 
 extension SteppIRDevice {
@@ -239,3 +241,4 @@ extension SteppIRDevice {
         self.port = port
     }
 }
+

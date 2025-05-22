@@ -100,4 +100,27 @@ class GHRT21Device: ObservableObject {
         log("Received frame: \(frame)")
         // TODO: parse fields out of `frame` as needed
     }
+
+    /// Default rotator presets (azimuths in degrees)
+    let presets: [Int] = [0, 45, 90, 135, 180, 225, 270, 315]
+
+    /// Sends a “go to” command for a specific heading
+    func goTo(_ heading: Int) {
+        let work = String(format: "%03d", heading)
+        let cmd = "AP0" + work + "\r;"
+        log("🛰️ GHRT21: Sending preset command \(cmd)")
+        if let data = cmd.data(using: .ascii) {
+            client?.send(data)
+        }
+   
+    }
+
+    /// Stop any ongoing relative motion
+    func stopMotion() {
+        let cmd = "ST;"
+        log("🛰️ GHRT21: Sending stop command \(cmd)")
+        if let data = cmd.data(using: .ascii) {
+            client?.send(data)
+        }
+    }
 }

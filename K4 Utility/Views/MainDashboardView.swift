@@ -23,7 +23,7 @@ struct MainDashboardView: View {
                 HStack(alignment: .top, spacing: 12) {
                     SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
                     ElecraftKPA1500DashboardView(device: kpaDevice)
-                    GHRT21DashboardView(device: rotatorDevice)
+                    GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
                 }
 
                 ElecraftK4DashboardView(device: elecraftDevice)
