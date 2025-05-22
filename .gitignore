@@ -1,0 +1,15 @@
+# Xcode build artifacts
+build/
+DerivedData/
+
+# User-specific files
+*.xcuserstate
+
+# macOS metadata
+.DS_Store
+
+# Xcode workspace data
+xcuserdata/
+
+# Do NOT ignore image assets or .xcassets folders!
+# Be careful with rules like *.jpg or *.xcassets/ unless intentional.
