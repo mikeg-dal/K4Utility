@@ -33,6 +33,35 @@ struct ElecraftKPA1500DashboardView: View {
                     .font(.subheadline)
             }
 
+            // Operate/Standby Controls
+            HStack(spacing: 8) {
+                Button("Operate") {
+                    device.setOperateMode(true)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .frame(minWidth: 80)
+                .font(.caption2)
+                .padding(6)
+                .background(device.operateMode == "Operate"
+                            ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                            : Color(red: 61/255, green: 61/255, blue: 61/255))
+                .foregroundColor(.white)
+                .cornerRadius(8)
+
+                Button("Standby") {
+                    device.setOperateMode(false)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .frame(minWidth: 80)
+                .font(.caption2)
+                .padding(6)
+                .background(device.operateMode == "Standby"
+                            ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                            : Color(red: 61/255, green: 61/255, blue: 61/255))
+                .foregroundColor(.white)
+                .cornerRadius(8)
+            }
+
             // Power metrics
             VStack(alignment: .leading, spacing: 4) {
                 Text(String(format: "Fwd: %.0f W   Ref: %.0f W", device.forwardPower, device.reflectedPower))

@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import Network
 
 class SteppIRDevice: ObservableObject {
     @Published var frequencyHz: Int = 0
@@ -30,7 +31,7 @@ class SteppIRDevice: ObservableObject {
         }
     }
 
-    private var client: TCPClient?
+    private var connection: NWConnection?
     private var buffer = Data()
 
     var ipAddress: String
@@ -44,28 +45,40 @@ class SteppIRDevice: ObservableObject {
 
     func connect() {
         log("🔗 SteppIR: Attempting to connect to \(ipAddress):\(port)")
-        client = TCPClient()
-        client?.onReceive = handleIncoming(data:)
-        client?.connect(host: ipAddress, port: UInt16(port))
-        isConnected = true
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
-            self?.pollStatus()
+        // Create and start NWConnection
+        let host = NWEndpoint.Host(ipAddress)
+        let nwPort = NWEndpoint.Port(rawValue: UInt16(port))!
+        let params = NWParameters.tcp
+        let conn = NWConnection(host: host, port: nwPort, using: params)
+        self.connection = conn
+
+        conn.stateUpdateHandler = { [weak self] newState in
+            DispatchQueue.main.async {
+                switch newState {
+                case .ready:
+                    self?.isConnected = true
+                    self?.log("✅ SteppIR: Connection ready")
+                    self?.startReceiveLoop()
+                case .failed(let error):
+                    self?.isConnected = false
+                    self?.log("❌ SteppIR: Connection failed – \(error.localizedDescription)")
+                case .cancelled:
+                    self?.isConnected = false
+                    self?.log("🔌 SteppIR: Connection cancelled")
+                default:
+                    break
+                }
+            }
         }
-        if let timer = pollingTimer {
-            RunLoop.main.add(timer, forMode: .common)
-        }
+        conn.start(queue: .main)
     }
 
     func disconnect() {
         log("🔌 SteppIR: Disconnecting")
-
         pollingTimer?.invalidate()
         pollingTimer = nil
-
-        client?.disconnect()
-        client?.onReceive = nil
-        client = nil
-
+        connection?.cancel()
+        connection = nil
         isConnected = false
     }
 
@@ -93,14 +106,26 @@ class SteppIRDevice: ObservableObject {
         command += "31000D"
         log("📤 SteppIR: Sending frequency update command \(command)")
         if let data = hexStringToData(command) {
-            client?.send(data)
+            connection?.send(content: data, completion: .contentProcessed { _ in })
+        }
+    }
+
+    /// Begin continuously receiving data on the connection
+    private func startReceiveLoop() {
+        connection?.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, isComplete, error in
+            if let data = data, !data.isEmpty {
+                self?.handleIncoming(data: data)
+            }
+            if error == nil && !isComplete {
+                self?.startReceiveLoop()
+            }
         }
     }
 
     private func pollStatus() {
         log("🔄 SteppIR: Polling status...")
         let command: [UInt8] = [0x3F, 0x41, 0x0D]
-        client?.send(Data(command))
+        connection?.send(content: Data(command), completion: .contentProcessed { _ in })
     }
 
     private func handleIncoming(data: Data) {
@@ -181,7 +206,7 @@ class SteppIRDevice: ObservableObject {
         command += "53000D"
         log("SteppIR: Sending HOME command \(command)")
         if let data = hexStringToData(command) {
-            client?.send(data)
+            connection?.send(content: data, completion: .contentProcessed { _ in })
         }
     }
 
@@ -204,7 +229,7 @@ class SteppIRDevice: ObservableObject {
 
         log("SteppIR: Sending AUTO command \(command)")
         if let data = hexStringToData(command) {
-            client?.send(data)
+            connection?.send(content: data, completion: .contentProcessed { _ in })
         }
 
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
@@ -228,7 +253,7 @@ class SteppIRDevice: ObservableObject {
         command += "56000D"
         log("SteppIR: Sending CALIBRATE command \(command)")
         if let data = hexStringToData(command) {
-            client?.send(data)
+            connection?.send(content: data, completion: .contentProcessed { _ in })
         }
     }
 

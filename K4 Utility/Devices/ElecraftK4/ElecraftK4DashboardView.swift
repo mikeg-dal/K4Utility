@@ -41,6 +41,10 @@ struct ElecraftK4DashboardView: View {
             }
         }
         .padding(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white, lineWidth: 2)
+        )
     }
 }
 

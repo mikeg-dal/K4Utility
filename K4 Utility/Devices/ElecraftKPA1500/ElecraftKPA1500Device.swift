@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import Network
 
 class ElecraftKPA1500Device: ObservableObject {
     @Published var isConnected: Bool = false
@@ -37,23 +38,16 @@ class ElecraftKPA1500Device: ObservableObject {
         didSet { log("🔌 KPA1500: paCurrent changed to \(paCurrent) A") }
     }
 
-    @Published var debugEnabled: Bool = false {
-        didSet {
-            if debugEnabled {
-                TCPClient.enableDebug()
-            } else {
-                TCPClient.disableDebug()
-            }
-        }
-    }
+    @Published var debugEnabled: Bool = false
 
+    /// Prints debug messages when `debugEnabled` is true
     private func log(_ message: String) {
         if debugEnabled {
             print(message)
         }
     }
 
-    private var client: TCPClient?
+    private var connection: NWConnection?
     private var buffer = Data()
     private var pollingTimer: Timer?
 
@@ -61,27 +55,46 @@ class ElecraftKPA1500Device: ObservableObject {
     var port: Int = 1500
 
     func connect() {
-        client = TCPClient()
-        client?.onReceive = handleIncoming(data:)
-        client?.connect(host: ipAddress, port: UInt16(port))
-        isConnected = true
+        log("🔗 KPA1500: Attempting to connect to \(ipAddress):\(port)")
+        let host = NWEndpoint.Host(ipAddress)
+        let nwPort = NWEndpoint.Port(rawValue: UInt16(port))!
+        let params = NWParameters.tcp
+        let conn = NWConnection(host: host, port: nwPort, using: params)
+        connection = conn
 
-        // send all status commands every 100 ms
+        conn.stateUpdateHandler = { [weak self] newState in
+            DispatchQueue.main.async {
+                switch newState {
+                case .ready:
+                    self?.isConnected = true
+                    self?.log("✅ KPA1500: Connection ready")
+                    self?.startReceiveLoop()
+                case .failed(let error):
+                    self?.isConnected = false
+                    self?.log("❌ KPA1500: Connection failed – \(error.localizedDescription)")
+                case .cancelled:
+                    self?.isConnected = false
+                    self?.log("🔌 KPA1500: Connection cancelled")
+                default:
+                    break
+                }
+            }
+        }
+        conn.start(queue: .main)
+        // Schedule polling after connection ready
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             self?.pollStatus()
         }
-        if let t = pollingTimer {
-            RunLoop.main.add(t, forMode: .common)
-        }
+        if let t = pollingTimer { RunLoop.main.add(t, forMode: .common) }
     }
 
     func disconnect() {
         pollingTimer?.invalidate()
         pollingTimer = nil
-        client?.disconnect()
-        client?.onReceive = nil
-        client = nil
+        connection?.cancel()
+        connection = nil
         isConnected = false
+        log("🔌 KPA1500: Disconnected")
     }
 
     private func pollStatus() {
@@ -89,7 +102,7 @@ class ElecraftKPA1500Device: ObservableObject {
         for cmd in commands {
             log("🔄 KPA1500: Sending command \(cmd)")
             if let data = cmd.data(using: .ascii) {
-                client?.send(data)
+                connection?.send(content: data, completion: .contentProcessed { _ in })
             }
         }
     }
@@ -104,6 +117,18 @@ class ElecraftKPA1500Device: ObservableObject {
                     self.log("📥 KPA1500: Received frame: \(str)")
                     self.processFrameString(str)
                 }
+            }
+        }
+    }
+
+    /// Continuously receive data
+    private func startReceiveLoop() {
+        connection?.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, isComplete, error in
+            if let data = data, !data.isEmpty {
+                self?.handleIncoming(data: data)
+            }
+            if error == nil && !isComplete {
+                self?.startReceiveLoop()
             }
         }
     }
@@ -188,6 +213,17 @@ class ElecraftKPA1500Device: ObservableObject {
             default:
                 break
             }
+        }
+    }
+
+
+    /// Sends a command to set Operate (true) or Standby (false) mode
+    func setOperateMode(_ enabled: Bool) {
+        let code = enabled ? "1" : "0"
+        let cmd = "^OS\(code);"
+        log("🔄 KPA1500: Sending Mode command \(cmd)")
+        if let data = cmd.data(using: .ascii) {
+            connection?.send(content: data, completion: .contentProcessed { _ in })
         }
     }
 }

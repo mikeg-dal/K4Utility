@@ -40,11 +40,11 @@ struct GradientMeterView: View {
 struct GradientMeterView_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 16) {
-            GradientMeterView(value: 200, minValue: 0, maxValue: 1500)
+            GradientMeterView(value: 200, minValue: 0, maxValue: 1100)
                 .frame(width: 200)
-            GradientMeterView(value: 800, minValue: 0, maxValue: 1500)
+            GradientMeterView(value: 800, minValue: 0, maxValue: 1100)
                 .frame(width: 200)
-            GradientMeterView(value: 1500, minValue: 0, maxValue: 1500)
+            GradientMeterView(value: 1500, minValue: 0, maxValue: 1100)
                 .frame(width: 200)
         }
         .padding()

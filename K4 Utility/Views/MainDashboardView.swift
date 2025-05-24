@@ -20,28 +20,14 @@ struct MainDashboardView: View {
 
             // Top-left info panel
             VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 12) {
-                    SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
-                    ElecraftKPA1500DashboardView(device: kpaDevice)
-                    GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
-                }
-
+                SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
+                ElecraftKPA1500DashboardView(device: kpaDevice)
                 ElecraftK4DashboardView(device: elecraftDevice)
+                GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
             }
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            SettingsLink {
-                Image(systemName: "gearshape")
-                    .imageScale(.large)
-                    .frame(width: 36, height: 36)
-                    .background(Color.gray)
-                    .foregroundColor(.white)
-                    .clipShape(Circle())
-            }
-            .padding(.bottom, 30)
-            .padding(.trailing, 20)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
     }
 #if DEBUG
