@@ -59,6 +59,17 @@ class SteppIRDevice: ObservableObject {
                     self?.isConnected = true
                     self?.log("✅ SteppIR: Connection ready")
                     self?.startReceiveLoop()
+                    // Start polling status on successful connect
+                    self?.pollingTimer?.invalidate()
+                    self?.pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { _ in
+                        self?.pollStatus()
+                    }
+                    if let t = self?.pollingTimer {
+                        RunLoop.main.add(t, forMode: .common)
+                    }
+                case .waiting(let error):
+                    self?.isConnected = false
+                    self?.log("⏳ SteppIR: Waiting to connect – \(error.localizedDescription)")
                 case .failed(let error):
                     self?.isConnected = false
                     self?.log("❌ SteppIR: Connection failed – \(error.localizedDescription)")
@@ -258,6 +269,13 @@ class SteppIRDevice: ObservableObject {
     }
 
 
+
+
+    deinit {
+        // Ensure TCP is closed if the instance is destroyed
+        disconnect()
+    }
+
 }
 
 extension SteppIRDevice {
@@ -266,4 +284,3 @@ extension SteppIRDevice {
         self.port = port
     }
 }
-
