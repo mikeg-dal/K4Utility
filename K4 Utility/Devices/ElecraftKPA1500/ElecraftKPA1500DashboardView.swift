@@ -74,7 +74,7 @@ struct ElecraftKPA1500DashboardView: View {
             GradientMeterView(value: device.forwardPower,
                               minValue: 0,
                               maxValue: 1500)
-                .frame(width: 200, height: 16)
+                .frame(width: 125, height: 16)
                 .animation(.easeOut(duration: 0.5), value: device.forwardPower)
                 .cornerRadius(8)
 
@@ -86,7 +86,7 @@ struct ElecraftKPA1500DashboardView: View {
             GradientMeterView(value: device.swr,
                               minValue: 1.0,
                               maxValue: 5.0)
-                .frame(width: 200, height: 16)
+                .frame(width: 125, height: 16)
                 .animation(.easeOut(duration: 0.5), value: device.swr)
                 .cornerRadius(8)
 

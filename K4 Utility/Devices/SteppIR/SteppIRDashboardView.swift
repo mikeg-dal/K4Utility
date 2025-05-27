@@ -91,7 +91,8 @@ struct SteppIRDashboardView: View {
                     .cornerRadius(13)
                     .buttonStyle(PlainButtonStyle())
 
-                    Button(device.isTrackingEnabled ? "Auto On" : "Auto Off") {
+                    // Updated Auto button to directly call setAuto and reflect action
+                    Button(device.isTrackingEnabled ? "Auto Off" : "Auto On") {
                         device.setAuto(enabled: !device.isTrackingEnabled)
                     }
                     .font(.caption)

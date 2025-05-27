@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import Network
 
 class ElecraftK4Device: ObservableObject {
     @Published var frequencyHz: Int = 0
@@ -24,66 +23,40 @@ class ElecraftK4Device: ObservableObject {
         }
     }
 
-    private func log(_ message: String) {
-        if debugEnabled {
-            print(message)
-        }
-    }
-
-     private var connection: NWConnection?
-     private var pollingTimer: Timer?
-     var ipAddress: String
-     var port: Int
-     var buffer = Data()
+    @Published var ipAddress: String = "192.168.1.10"
+    @Published var port: Int = 9200
+    private var client: TCPClient?
+    private var pollingTimer: Timer?
+    var buffer = Data()
 
     init(ipAddress: String = "192.168.1.10", port: Int = 9200) {
         self.ipAddress = ipAddress
         self.port = port
     }
 
-    func startConnection() {
+    /// Establishes TCPClient connection and begins polling for FA updates
+    func connect() {
         log("🚀 K4D: Starting connection to \(ipAddress):\(port)")
-        let host = NWEndpoint.Host(ipAddress)
-        let nwPort = NWEndpoint.Port(rawValue: UInt16(port))!
-        let params = NWParameters.tcp
-        let conn = NWConnection(host: host, port: nwPort, using: params)
-        self.connection = conn
-        
-        conn.stateUpdateHandler = { [weak self] newState in
-            DispatchQueue.main.async {
-                switch newState {
-                case .ready:
-                    self?.isConnected = true
-                    self?.log("✅ K4D: Connection ready")
-                    self?.startReceiveLoop()
-                    // Begin polling frequency
-                    self?.sendCommand("FA;")
-                    self?.pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-                        self?.sendCommand("FA;")
-                    }
-                    if let t = self?.pollingTimer {
-                        RunLoop.main.add(t, forMode: .common)
-                    }
-                case .failed(let error):
-                    self?.isConnected = false
-                    self?.log("❌ K4D: Connection failed – \(error.localizedDescription)")
-                case .cancelled:
-                    self?.isConnected = false
-                    self?.log("🔌 K4D: Connection cancelled")
-                default:
-                    break
-                }
-            }
+        client = TCPClient()
+        client?.onReceive = handleIncoming(data:)
+        client?.connect(host: ipAddress, port: UInt16(port))
+        isConnected = true
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.sendCommand("FA;")
         }
-        conn.start(queue: .main)
+        if let timer = pollingTimer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
     }
 
-    func stopConnection() {
+    /// Stops polling and disconnects the TCPClient
+    func disconnect() {
         log("🔌 K4D: Disconnecting")
         pollingTimer?.invalidate()
         pollingTimer = nil
-        connection?.cancel()
-        connection = nil
+        client?.disconnect()
+        client?.onReceive = nil
+        client = nil
         isConnected = false
     }
 
@@ -110,34 +83,21 @@ class ElecraftK4Device: ObservableObject {
         }
     }
 
-    /// Continuously receive data until connection is closed
-    private func startReceiveLoop() {
-        connection?.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, isComplete, error in
-            if let data = data, !data.isEmpty {
-                self?.handleIncoming(data: data)
-            }
-            if error == nil && !isComplete {
-                self?.startReceiveLoop()
-            }
-        }
-    }
-
     func sendCommand(_ command: String) {
         log("📤 K4D: Sending command: \(command)")
         guard let data = (command + "\r").data(using: .utf8) else { return }
-        connection?.send(content: data, completion: .contentProcessed { _ in })
+        client?.send(data)
+    }
+
+    private func log(_ message: String) {
+        if debugEnabled {
+            print(message)
+        }
     }
 }
 
 extension ElecraftK4Device {
-    func connect() {
-        startConnection()
-    }
-
-    func disconnect() {
-        stopConnection()
-    }
-
+    /// Update IP address and port before connecting
     func updateConnectionDetails(ipAddress: String, port: Int) {
         self.ipAddress = ipAddress
         self.port = port

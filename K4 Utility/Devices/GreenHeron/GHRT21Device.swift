@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Network
 
 /// Handles TCP/IP communication and polling for the GreenHeron RT-21 rotator
 class GHRT21Device: ObservableObject {
@@ -14,7 +13,7 @@ class GHRT21Device: ObservableObject {
     @Published var status: String = ""
     @Published var debugEnabled: Bool = false
 
-    private var connection: NWConnection?
+    private var client: TCPClient?
     private var buffer = Data()
     private var pollingTimer: Timer?
 
@@ -28,41 +27,19 @@ class GHRT21Device: ObservableObject {
         }
     }
 
-    /// Establishes TCP connection and starts polling
+    /// Establishes TCPClient connection and starts polling
     func connect() {
         log("🔗 GHRT21: Attempting to connect to \(ipAddress):\(port)")
-        let host = NWEndpoint.Host(ipAddress)
-        let nwPort = NWEndpoint.Port(rawValue: UInt16(port))!
-        let params = NWParameters.tcp
-        let conn = NWConnection(host: host, port: nwPort, using: params)
-        self.connection = conn
-
-        conn.stateUpdateHandler = { [weak self] newState in
-            DispatchQueue.main.async {
-                switch newState {
-                case .ready:
-                    self?.isConnected = true
-                    self?.log("✅ GHRT21: Connection ready")
-                    self?.startReceiveLoop()
-                    // start polling every second
-                    self?.pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-                        self?.pollStatus()
-                    }
-                    if let t = self?.pollingTimer {
-                        RunLoop.main.add(t, forMode: .common)
-                    }
-                case .failed(let error):
-                    self?.isConnected = false
-                    self?.log("❌ GHRT21: Connection failed – \(error.localizedDescription)")
-                case .cancelled:
-                    self?.isConnected = false
-                    self?.log("🔌 GHRT21: Connection cancelled")
-                default:
-                    break
-                }
-            }
+        client = TCPClient()
+        client?.onReceive = handleIncoming(data:)
+        client?.connect(host: ipAddress, port: UInt16(port))
+        isConnected = true
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.pollStatus()
         }
-        conn.start(queue: .main)
+        if let t = pollingTimer {
+            RunLoop.main.add(t, forMode: .common)
+        }
     }
 
     /// Disconnects and stops polling
@@ -70,8 +47,9 @@ class GHRT21Device: ObservableObject {
         log("🔌 GHRT21: Disconnecting")
         pollingTimer?.invalidate()
         pollingTimer = nil
-        connection?.cancel()
-        connection = nil
+        client?.disconnect()
+        client?.onReceive = nil
+        client = nil
         isConnected = false
     }
 
@@ -80,7 +58,7 @@ class GHRT21Device: ObservableObject {
         let cmd = "AI;"
         log("Sending command \(cmd)")
         if let data = cmd.data(using: .ascii) {
-            connection?.send(content: data, completion: .contentProcessed { _ in })
+            client?.send(data)
         }
     }
 
@@ -113,18 +91,6 @@ class GHRT21Device: ObservableObject {
         // TODO: parse fields out of `frame` as needed
     }
 
-    /// Continuously receive incoming data
-    private func startReceiveLoop() {
-        connection?.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, isComplete, error in
-            if let data = data, !data.isEmpty {
-                self?.handleIncoming(data: data)
-            }
-            if error == nil && !isComplete {
-                self?.startReceiveLoop()
-            }
-        }
-    }
-
     /// Default rotator presets (azimuths in degrees)
     let presets: [Int] = [0, 45, 90, 135, 180, 225, 270, 315]
 
@@ -134,7 +100,7 @@ class GHRT21Device: ObservableObject {
         let cmd = "AP0" + work + "\r;"
         log("🛰️ GHRT21: Sending preset command \(cmd)")
         if let data = cmd.data(using: .ascii) {
-            connection?.send(content: data, completion: .contentProcessed { _ in })
+            client?.send(data)
         }
    
     }
@@ -144,7 +110,7 @@ class GHRT21Device: ObservableObject {
         let cmd = "ST;"
         log("🛰️ GHRT21: Sending stop command \(cmd)")
         if let data = cmd.data(using: .ascii) {
-            connection?.send(content: data, completion: .contentProcessed { _ in })
+            client?.send(data)
         }
     }
 }
