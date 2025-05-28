@@ -173,3 +173,14 @@ struct SteppIRDashboardView: View {
         }
     }
 }
+
+#if DEBUG
+struct SteppIRDashboardView_Previews: PreviewProvider {
+    static var previews: some View {
+        SteppIRDashboardView(device: SteppIRDevice(), k4Device: ElecraftK4Device())
+            .previewLayout(.sizeThatFits)
+            .padding()
+    }
+}
+#endif
+

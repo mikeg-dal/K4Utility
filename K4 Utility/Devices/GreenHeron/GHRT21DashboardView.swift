@@ -18,62 +18,78 @@ struct GHRT21DashboardView: View {
             : raw
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Connection status
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(device.isConnected ? Color.green : Color.red)
-                    .frame(width: 12, height: 12)
-                Text("GH-RT21")
-                    .font(.headline)
-            }
-
-            ZStack {
-                AzimuthMapView()
-                BeamWedgeShape(
-                    heading: computedHeading,
-                    beamwidth: beamwidth
-                )
-                .fill(Color.green.opacity(0.3))
-                .animation(.easeOut(duration: 0.3), value: computedHeading)
-            }
-            .frame(width: 200, height: 200)
-
-            // Preset heading buttons (2 rows × 4 columns)
-            VStack(spacing: 8) {
-                ForEach(0..<2) { row in
-                    HStack(spacing: 8) {
-                        ForEach(0..<4) { col in
-                            let heading = device.presets[row * 4 + col]
-                            Button("\(heading)°") {
-                                device.goTo(heading)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .frame(minWidth: 40)
-                            .font(.caption2)
-                            .padding(6)
-                            .background(Color.gray)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
+    // MARK: – Preset Grid
+    private var presetGrid: some View {
+        VStack(spacing: 8) {
+            ForEach(0..<2, id: \.self) { row in
+                HStack(spacing: 8) {
+                    ForEach(0..<4, id: \.self) { col in
+                        let index = row * 4 + col
+                        Button(action: {
+                            device.goToPreset(at: index)
+                        }) {
+                            Text(device.presetNames[index])
+                                .font(.caption2)
+                                .frame(minWidth: 60)
+                                .padding(6)
                         }
+                        .buttonStyle(PlainButtonStyle())
+                        .background(Color.gray)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
                     }
                 }
             }
-            // Rotator step controls
-            HStack(spacing: 8) {
-                Button("■") {
-                    device.stopMotion()
+        }
+    }
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 12) {
+                // Connection status
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(device.isConnected ? Color.green : Color.red)
+                        .frame(width: 12, height: 12)
+                    Text("GH-RT21")
+                        .font(.headline)
                 }
-                .buttonStyle(PlainButtonStyle())
-                .frame(minWidth: 40)
+
+                ZStack {
+                    AzimuthMapView()
+                    BeamWedgeShape(
+                        heading: computedHeading,
+                        beamwidth: beamwidth
+                    )
+                    .fill(Color.green.opacity(0.3))
+                    .animation(.easeOut(duration: 0.3), value: computedHeading)
+                }
+                .frame(width: 200, height: 200)
+
+                presetGrid
+                // Rotator step controls
+                HStack(spacing: 8) {
+                    Button("■") {
+                        device.stopMotion()
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(minWidth: 40)
+                    .font(.caption2)
+                    .padding(6)
+                    .background(Color.gray)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+                .padding(.top, 8)
+            }
+            Text("\(Int(computedHeading))°")
                 .font(.caption2)
                 .padding(6)
-                .background(Color.gray)
+                .background(Color.black.opacity(0.9))
                 .foregroundColor(.white)
-                .cornerRadius(8)
-            }
-            .padding(.top, 8)
+                .cornerRadius(4)
+                .padding(8)
+                .frame(width: 60)
         }
         .padding(8)
         .overlay(

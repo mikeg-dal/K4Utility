@@ -91,18 +91,24 @@ class GHRT21Device: ObservableObject {
         // TODO: parse fields out of `frame` as needed
     }
 
-    /// Default rotator presets (azimuths in degrees)
-    let presets: [Int] = [0, 45, 90, 135, 180, 225, 270, 315]
 
-    /// Sends a “go to” command for a specific heading
-    func goTo(_ heading: Int) {
+    // MARK: – Dynamic Presets
+    
+    /// User-configurable azimuth values for presets
+    @Published var presetAzimuths: [Int] = [0, 45, 90, 135, 180, 225, 270, 315]
+    
+    /// User-configurable names for each preset
+    @Published var presetNames: [String] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+
+    /// Sends a “go to” command for a preset index
+    func goToPreset(at index: Int) {
+        let heading = presetAzimuths[index]
         let work = String(format: "%03d", heading)
         let cmd = "AP0" + work + "\r;"
         log("🛰️ GHRT21: Sending preset command \(cmd)")
         if let data = cmd.data(using: .ascii) {
             client?.send(data)
         }
-   
     }
 
     /// Stop any ongoing relative motion

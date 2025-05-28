@@ -46,7 +46,7 @@ struct ElecraftKPA1500DashboardView: View {
                             ? Color(red: 66/255, green: 100/255, blue: 157/255)
                             : Color(red: 61/255, green: 61/255, blue: 61/255))
                 .foregroundColor(.white)
-                .cornerRadius(8)
+                .cornerRadius(1)
 
                 Button("Standby") {
                     device.setOperateMode(false)
@@ -59,7 +59,7 @@ struct ElecraftKPA1500DashboardView: View {
                             ? Color(red: 66/255, green: 100/255, blue: 157/255)
                             : Color(red: 61/255, green: 61/255, blue: 61/255))
                 .foregroundColor(.white)
-                .cornerRadius(8)
+                .cornerRadius(1)
             }
 
             // Power metrics
