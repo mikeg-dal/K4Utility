@@ -59,7 +59,7 @@ class ElecraftKPA1500Device: ObservableObject {
         client?.onReceive = handleIncoming(data:)
         client?.connect(host: ipAddress, port: UInt16(port))
         isConnected = true
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
             self?.pollStatus()
         }
         if let t = pollingTimer {

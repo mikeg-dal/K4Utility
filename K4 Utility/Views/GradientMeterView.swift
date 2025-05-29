@@ -6,7 +6,7 @@
 //
 
 // GradientMeterView.swift
-// Displays a horizontal meter with green→yellow→red gradient based on value
+// Displays a horizontal meter with blue→green→yellow→red gradient based on value
 
 import SwiftUI
 
@@ -24,7 +24,7 @@ struct GradientMeterView: View {
                 Capsule()
                     .fill(
                         LinearGradient(
-                            gradient: Gradient(colors: [Color.green, Color.yellow, Color.red]),
+                            gradient: Gradient(colors: [Color.blue,Color.green, Color.yellow, Color.red]),
                             startPoint: .leading,
                             endPoint: .trailing
                         )

@@ -172,8 +172,10 @@ class SteppIRDevice: ObservableObject {
     }
 
     func setAuto(enabled: Bool) {
-        pollingTimer?.invalidate()
-        pollingTimer = nil
+        guard isConnected else {
+            print("SteppIR: Not connected, skipping auto toggle")
+            return
+        }
 
         let hexFreq = String(format: "%06X", frequencyHz * 100)
         var command = "404100" + hexFreq + "00"
@@ -185,7 +187,7 @@ class SteppIRDevice: ObservableObject {
         default: command += "00"
         }
 
-        let toggleCode = isTrackingEnabled ? "55" : "52"
+        let toggleCode = enabled ? "55" : "52"
         command += toggleCode + "000D"
 
         print("SteppIR: Sending AUTO command \(command)")
@@ -193,11 +195,8 @@ class SteppIRDevice: ObservableObject {
             client?.send(data)
         }
 
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
-            self?.pollStatus()
-        }
-        if let timer = pollingTimer {
-            RunLoop.main.add(timer, forMode: .common)
+        DispatchQueue.main.async {
+            self.isTrackingEnabled = enabled
         }
     }
 

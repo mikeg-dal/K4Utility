@@ -97,7 +97,7 @@ struct SteppIRDashboardView: View {
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(device.isTrackingEnabled
+                    .background(!device.isTrackingEnabled
                         ? Color(red: 66/255, green: 100/255, blue: 157/255)
                         : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
