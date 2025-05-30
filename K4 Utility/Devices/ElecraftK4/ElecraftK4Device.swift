@@ -7,11 +7,13 @@
 
 import Foundation
 import Combine
+import SwiftUI  // for accessing SettingsStore
 
 class ElecraftK4Device: ObservableObject {
     @Published var frequencyHz: Int = 0
     @Published var currentFrequencyDisplay: String = ""
     @Published var isConnected: Bool = false
+    @Published var connectionError: String?
 
     @Published var debugEnabled: Bool = false {
         didSet {
@@ -25,13 +27,33 @@ class ElecraftK4Device: ObservableObject {
 
     @Published var ipAddress: String = "192.168.1.10"
     @Published var port: Int = 9200
+    private var settingsStore: SettingsStore
+    private var cancellables = Set<AnyCancellable>()
     private var client: TCPClient?
     private var pollingTimer: Timer?
     var buffer = Data()
 
-    init(ipAddress: String = "192.168.1.10", port: Int = 9200) {
-        self.ipAddress = ipAddress
-        self.port = port
+    init(settingsStore: SettingsStore) {
+        self.settingsStore = settingsStore
+        // Load saved settings
+        let saved = settingsStore.settings.k4
+        self.ipAddress = saved.ipAddress
+        self.port = saved.port
+
+        // Persist changes to settings
+        $ipAddress
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.k4.ipAddress = new
+            }
+            .store(in: &cancellables)
+
+        $port
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.k4.port = new
+            }
+            .store(in: &cancellables)
     }
 
     /// Establishes TCPClient connection and begins polling for FA updates
@@ -39,13 +61,18 @@ class ElecraftK4Device: ObservableObject {
         log("🚀 K4D: Starting connection to \(ipAddress):\(port)")
         client = TCPClient()
         client?.onReceive = handleIncoming(data:)
-        client?.connect(host: ipAddress, port: UInt16(port))
-        isConnected = true
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.sendCommand("FA;")
-        }
-        if let timer = pollingTimer {
-            RunLoop.main.add(timer, forMode: .common)
+        client?.onDisconnect = handleDisconnect
+        let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
+        if success {
+            isConnected = true
+            pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                self?.sendCommand("FA;")
+            }
+            if let timer = pollingTimer {
+                RunLoop.main.add(timer, forMode: .common)
+            }
+        } else {
+            handleConnectionError()
         }
     }
 
@@ -94,12 +121,28 @@ class ElecraftK4Device: ObservableObject {
             print(message)
         }
     }
-}
 
-extension ElecraftK4Device {
-    /// Update IP address and port before connecting
-    func updateConnectionDetails(ipAddress: String, port: Int) {
-        self.ipAddress = ipAddress
-        self.port = port
+    private func handleConnectionError() {
+        log("❌ K4D: Connection failed to \(ipAddress):\(port)")
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+        client?.disconnect()
+        client?.onReceive = nil
+        client = nil
+        DispatchQueue.main.async {
+            self.connectionError = "Unable to reach device at \(self.ipAddress):\(self.port)"
+        }
+    }
+
+    private func handleDisconnect() {
+        log("🔴 K4D: Connection lost")
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+        client = nil
+        DispatchQueue.main.async {
+            self.isConnected = false
+            self.connectionError = "Connection lost"
+        }
     }
 }
+

@@ -48,10 +48,7 @@ struct ElecraftK4DashboardView: View {
     }
 }
 
-#if DEBUG
-struct ElecraftK4DashboardView_Previews: PreviewProvider {
-    static var previews: some View {
-        ElecraftK4DashboardView(device: ElecraftK4Device(ipAddress: "192.168.1.10", port: 9200))
-    }
-}
-#endif
+
+    
+
+

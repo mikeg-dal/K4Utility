@@ -8,47 +8,55 @@ import SwiftUI
 
 struct ElecraftK4ConfigView: View {
     @ObservedObject var device: ElecraftK4Device
+    @State private var showErrorAlert = false
+    @EnvironmentObject var settingsStore: SettingsStore
 
     var body: some View {
-        Form {
-            // Debug toggle
-            Toggle("Debug", isOn: $device.debugEnabled)
-                .padding(.bottom, 8)
+        Group {
+            Form {
+                // Debug toggle
+                Toggle("Debug", isOn: $device.debugEnabled)
+                    .padding(.bottom, 8)
 
-            // Connection settings
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 16) {
-                    TextField("IP Address", text: $device.ipAddress)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 200)
-                    TextField("Port", value: $device.port, formatter: NumberFormatter())
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 100)
-                }
-                HStack {
-                    Button(device.isConnected ? "Disconnect" : "Connect") {
-                        if device.isConnected {
-                            device.disconnect()
-                        } else {
-                            device.updateConnectionDetails(ipAddress: device.ipAddress, port: device.port)
-                            device.connect()
-                        }
+                // Connection settings
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 16) {
+                        TextField("IP Address", text: $device.ipAddress)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 200)
+                        TextField("Port", value: $device.port, formatter: NumberFormatter())
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 100)
                     }
-                    Circle()
-                        .fill(device.isConnected ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
+                    HStack {
+                        Button(device.isConnected ? "Disconnect" : "Connect") {
+                            if device.isConnected {
+                                device.disconnect()
+                            } else {
+                                device.connect()
+                            }
+                        }
+                        Circle()
+                            .fill(device.isConnected ? Color.green : Color.red)
+                            .frame(width: 12, height: 12)
+                    }
                 }
             }
         }
         .frame(minWidth: 350, maxWidth: 400)
+        .onReceive(device.$connectionError) { error in
+            showErrorAlert = (error != nil)
+        }
+        .alert(isPresented: $showErrorAlert) {
+            Alert(
+                title: Text("Connection Error"),
+                message: Text(device.connectionError ?? "Unknown error"),
+                dismissButton: .default(Text("OK")) {
+                    // Clear the error so alert won’t reappear
+                    device.connectionError = nil
+                }
+            )
+        }
     }
 }
-
-#if DEBUG
-struct ElecraftK4ConfigView_Previews: PreviewProvider {
-    static var previews: some View {
-        ElecraftK4ConfigView(device: ElecraftK4Device(ipAddress: "192.168.1.10", port: 9200))
-    }
-}
-#endif
 

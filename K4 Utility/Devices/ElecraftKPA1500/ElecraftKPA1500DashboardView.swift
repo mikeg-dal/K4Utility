@@ -35,27 +35,16 @@ struct ElecraftKPA1500DashboardView: View {
 
             // Operate/Standby Controls
             HStack(spacing: 8) {
-                Button("Operate") {
-                    device.setOperateMode(true)
+                Button(device.operateMode == "Operate" ? "Standby" : "Operate") {
+                    // Toggle between Operate and Standby
+                    let shouldOperate = device.operateMode != "Operate"
+                    device.setOperateMode(shouldOperate)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .frame(minWidth: 80)
                 .font(.caption2)
                 .padding(6)
                 .background(device.operateMode == "Operate"
-                            ? Color(red: 66/255, green: 100/255, blue: 157/255)
-                            : Color(red: 61/255, green: 61/255, blue: 61/255))
-                .foregroundColor(.white)
-                .cornerRadius(1)
-
-                Button("Standby") {
-                    device.setOperateMode(false)
-                }
-                .buttonStyle(PlainButtonStyle())
-                .frame(minWidth: 80)
-                .font(.caption2)
-                .padding(6)
-                .background(device.operateMode == "Standby"
                             ? Color(red: 66/255, green: 100/255, blue: 157/255)
                             : Color(red: 61/255, green: 61/255, blue: 61/255))
                 .foregroundColor(.white)
@@ -76,23 +65,12 @@ struct ElecraftKPA1500DashboardView: View {
                               maxValue: 1500)
                 .frame(width: 125, height: 16)
                 .animation(.easeOut(duration: 0.5), value: device.forwardPower)
-                .cornerRadius(8)
+                .cornerRadius(1)
 
             // Meter value label
             Text(String(format: "%.0f W", device.forwardPower))
                 .font(.caption)
 
-            // SWR meter
-            GradientMeterView(value: device.swr,
-                              minValue: 1.0,
-                              maxValue: 5.0)
-                .frame(width: 125, height: 16)
-                .animation(.easeOut(duration: 0.5), value: device.swr)
-                .cornerRadius(8)
-
-            // Meter value label for SWR
-            Text(String(format: "SWR: %.1f", device.swr))
-                .font(.caption)
         }
         .padding(8)
         .overlay(
@@ -101,11 +79,3 @@ struct ElecraftKPA1500DashboardView: View {
         )
     }
 }
-
-#if DEBUG
-struct ElecraftKPA1500DashboardView_Previews: PreviewProvider {
-    static var previews: some View {
-        ElecraftKPA1500DashboardView(device: ElecraftKPA1500Device())
-    }
-}
-#endif

@@ -7,38 +7,72 @@
 
 import Foundation
 import Combine
+import SwiftUI  // for SettingsStore access
 
 class SteppIRDevice: ObservableObject {
     @Published var frequencyHz: Int = 0
     @Published var direction: String = "Normal"
     @Published var isTrackingEnabled: Bool = false
     @Published var isConnected: Bool = false
+    @Published var connectionError: String?
     @Published var tuningStatus: Bool = false
     @Published var debugEnabled: Bool = false
+
+    /// Logs a message when debug is enabled
+    private func log(_ message: String) {
+        if debugEnabled {
+            print(message)
+        }
+    }
 
     private var client: TCPClient?
     private var buffer = Data()
 
-    var ipAddress: String
-    var port: Int
+    @Published var ipAddress: String = ""
+    @Published var port: Int = 0
+    private var settingsStore: SettingsStore
+    private var cancellables = Set<AnyCancellable>()
     private var pollingTimer: Timer?
 
-    init(ipAddress: String = "192.168.1.18", port: Int = 10001) {
-        self.ipAddress = ipAddress
-        self.port = port
+    init(settingsStore: SettingsStore) {
+        self.settingsStore = settingsStore
+        // Load saved settings
+        let saved = settingsStore.settings.steppIR
+        self.ipAddress = saved.ipAddress
+        self.port = saved.port
+
+        // Persist changes
+        $ipAddress
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.steppIR.ipAddress = new
+            }
+            .store(in: &cancellables)
+
+        $port
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.steppIR.port = new
+            }
+            .store(in: &cancellables)
     }
 
     func connect() {
-        print("SteppIR: Attempting to connect to \(ipAddress):\(port)")
+        log("🔗 SteppIR: Attempting to connect to \(ipAddress):\(port)")
         client = TCPClient()
         client?.onReceive = handleIncoming(data:)
-        client?.connect(host: ipAddress, port: UInt16(port))
-        isConnected = true
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
-            self?.pollStatus()
-        }
-        if let timer = pollingTimer {
-            RunLoop.main.add(timer, forMode: .common)
+        client?.onDisconnect = handleDisconnect
+        let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
+        if success {
+            isConnected = true
+            pollingTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+                self?.pollStatus()
+            }
+            if let timer = pollingTimer {
+                RunLoop.main.add(timer, forMode: .common)
+            }
+        } else {
+            handleConnectionError()
         }
     }
 
@@ -53,6 +87,29 @@ class SteppIRDevice: ObservableObject {
         client = nil
 
         isConnected = false
+    }
+
+    private func handleConnectionError() {
+        log("❌ SteppIR: Connection failed to \(ipAddress):\(port)")
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+        client?.disconnect()
+        client?.onReceive = nil
+        client = nil
+        DispatchQueue.main.async {
+            self.connectionError = "Unable to reach SteppIR at \(self.ipAddress):\(self.port)"
+        }
+    }
+
+    private func handleDisconnect() {
+        log("🔴 SteppIR: Connection lost")
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+        client = nil
+        DispatchQueue.main.async {
+            self.isConnected = false
+            self.connectionError = "SteppIR connection lost"
+        }
     }
 
     func setFrequency(_ freq: Int) {
@@ -218,9 +275,3 @@ class SteppIRDevice: ObservableObject {
     }
 }
 
-extension SteppIRDevice {
-    func updateConnectionDetails(ipAddress: String, port: Int) {
-        self.ipAddress = ipAddress
-        self.port = port
-    }
-}

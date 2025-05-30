@@ -9,10 +9,20 @@ import SwiftUI
 
 @main
 struct K4_UtilityApp: App {
-    @StateObject private var steppirDevice = SteppIRDevice()
-    @StateObject private var k4dDevice = ElecraftK4Device()
-    @StateObject private var kpaDevice = ElecraftKPA1500Device()
-    @StateObject private var rotatorDevice = GHRT21Device()
+    @StateObject private var settingsStore: SettingsStore
+    @StateObject private var steppirDevice: SteppIRDevice
+    @StateObject private var k4dDevice: ElecraftK4Device
+    @StateObject private var kpaDevice: ElecraftKPA1500Device
+    @StateObject private var rotatorDevice: GHRT21Device
+    
+    init() {
+        let store = SettingsStore()
+        _settingsStore = StateObject(wrappedValue: store)
+        _steppirDevice = StateObject(wrappedValue: SteppIRDevice(settingsStore: store))
+        _k4dDevice = StateObject(wrappedValue: ElecraftK4Device(settingsStore: store))
+        _kpaDevice = StateObject(wrappedValue: ElecraftKPA1500Device(settingsStore: store))
+        _rotatorDevice = StateObject(wrappedValue: GHRT21Device(settingsStore: store))
+    }
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -23,6 +33,7 @@ struct K4_UtilityApp: App {
                 kpaDevice: kpaDevice,
                 rotatorDevice: rotatorDevice
             )
+            .environmentObject(settingsStore)
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background || newPhase == .inactive {
                     steppirDevice.disconnect()
@@ -39,6 +50,7 @@ struct K4_UtilityApp: App {
                 kpaDevice: kpaDevice,
                 rotatorDevice: rotatorDevice
             )
+            .environmentObject(settingsStore)
         }
     }
 }

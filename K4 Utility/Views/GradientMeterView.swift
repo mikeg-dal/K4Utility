@@ -19,9 +19,9 @@ struct GradientMeterView: View {
         GeometryReader { geo in
             let pct = max(0, min(1, (value - minValue) / (maxValue - minValue)))
             ZStack(alignment: .leading) {
-                Capsule()
+                Rectangle()
                     .fill(Color.gray.opacity(0.2))
-                Capsule()
+                Rectangle()
                     .fill(
                         LinearGradient(
                             gradient: Gradient(colors: [Color.blue,Color.green, Color.yellow, Color.red]),

@@ -99,13 +99,3 @@ struct GHRT21DashboardView: View {
     }
 }
 
-#if DEBUG
-struct GHRT21DashboardView_Previews: PreviewProvider {
-    static var previews: some View {
-        // Simulate angle by setting status before previewing
-        let dev = GHRT21Device()
-        dev.status = "90"
-        return GHRT21DashboardView(device: dev, steppirDevice: SteppIRDevice())
-    }
-}
-#endif

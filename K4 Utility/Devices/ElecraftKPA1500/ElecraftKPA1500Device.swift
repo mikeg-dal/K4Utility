@@ -7,9 +7,11 @@
 
 import Foundation
 import Combine
+import SwiftUI  // for SettingsStore access
 
 class ElecraftKPA1500Device: ObservableObject {
     @Published var isConnected: Bool = false
+    @Published var connectionError: String?
     @Published var powerOutput: Double = 0     // in watts
     @Published var temperature: Double = 0 {     // in °C
         didSet { log("🌡️ KPA1500: temperature changed to \(temperature) °C") }
@@ -50,20 +52,50 @@ class ElecraftKPA1500Device: ObservableObject {
     private var buffer = Data()
     private var pollingTimer: Timer?
 
-    var ipAddress: String = "192.168.1.9"
-    var port: Int = 1500
+    @Published var ipAddress: String = ""
+    @Published var port: Int = 0
+    private var settingsStore: SettingsStore
+    private var cancellables = Set<AnyCancellable>()
+
+    init(settingsStore: SettingsStore) {
+        self.settingsStore = settingsStore
+        // Load saved settings
+        let saved = settingsStore.settings.kpa1500
+        self.ipAddress = saved.ipAddress
+        self.port = saved.port
+
+        // Persist changes
+        $ipAddress
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.kpa1500.ipAddress = new
+            }
+            .store(in: &cancellables)
+
+        $port
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.kpa1500.port = new
+            }
+            .store(in: &cancellables)
+    }
 
     func connect() {
         log("🔗 KPA1500: Attempting to connect to \(ipAddress):\(port)")
         client = TCPClient()
         client?.onReceive = handleIncoming(data:)
-        client?.connect(host: ipAddress, port: UInt16(port))
-        isConnected = true
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
-            self?.pollStatus()
-        }
-        if let t = pollingTimer {
-            RunLoop.main.add(t, forMode: .common)
+        client?.onDisconnect = handleDisconnect
+        let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
+        if success {
+            isConnected = true
+            pollingTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+                self?.pollStatus()
+            }
+            if let t = pollingTimer {
+                RunLoop.main.add(t, forMode: .common)
+            }
+        } else {
+            handleConnectionError()
         }
     }
 
@@ -75,6 +107,29 @@ class ElecraftKPA1500Device: ObservableObject {
         client?.onReceive = nil
         client = nil
         isConnected = false
+    }
+
+    private func handleConnectionError() {
+        log("❌ KPA1500: Connection failed to \(ipAddress):\(port)")
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+        client?.disconnect()
+        client?.onReceive = nil
+        client = nil
+        DispatchQueue.main.async {
+            self.connectionError = "Unable to reach device at \(self.ipAddress):\(self.port)"
+        }
+    }
+
+    private func handleDisconnect() {
+        log("🔴 KPA1500: Connection lost")
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+        client = nil
+        DispatchQueue.main.async {
+            self.isConnected = false
+            self.connectionError = "Connection lost"
+        }
     }
 
     private func pollStatus() {

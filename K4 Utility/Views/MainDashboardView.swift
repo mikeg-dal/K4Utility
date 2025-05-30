@@ -17,7 +17,7 @@ struct MainDashboardView: View {
         ZStack {
             Color(red: 37/255, green: 37/255, blue: 37/255)
                 .ignoresSafeArea()
-
+            
             // Top-left info panel
             VStack(alignment: .leading, spacing: 12) {
                 SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
@@ -27,20 +27,7 @@ struct MainDashboardView: View {
             }
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-
+            
         }
-    }
-#if DEBUG
-struct MainDashboardView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainDashboardView(
-            steppirDevice: SteppIRDevice(),
-            elecraftDevice: ElecraftK4Device(),
-            kpaDevice: ElecraftKPA1500Device(),
-            rotatorDevice: GHRT21Device()
-        )
-    }
-}
-#endif
-  
-    }
+        
+    }}

@@ -17,8 +17,8 @@ struct SteppIRDashboardView: View {
             // Connection status
             HStack(spacing: 8) {
                 Circle()
-                    .fill(device.isConnected ? Color.green : Color.red)
                     .frame(width: 12, height: 12)
+                    .foregroundColor(device.isConnected ? Color.green : Color.red)
                 Text("SteppIR")
                     .font(.headline)
             }
@@ -26,8 +26,8 @@ struct SteppIRDashboardView: View {
             // Tuning indicator under title
             HStack(spacing: 8) {
                 Circle()
-                    .fill(device.tuningStatus ? Color.red : Color.green)
                     .frame(width: 12, height: 12)
+                    .foregroundColor(device.tuningStatus ? Color.red : Color.green)
                 Text("Tuning")
                     .font(.headline)
             }
@@ -166,6 +166,7 @@ struct SteppIRDashboardView: View {
             k4Device.$frequencyHz
                 .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
         ) { newHz in
+            guard !device.isTrackingEnabled else { return }
             let rawKHz = newHz / 1000
             let truncatedKHz = (rawKHz / 10) * 10
             device.setFrequency(truncatedKHz)
@@ -174,13 +175,4 @@ struct SteppIRDashboardView: View {
     }
 }
 
-#if DEBUG
-struct SteppIRDashboardView_Previews: PreviewProvider {
-    static var previews: some View {
-        SteppIRDashboardView(device: SteppIRDevice(), k4Device: ElecraftK4Device())
-            .previewLayout(.sizeThatFits)
-            .padding()
-    }
-}
-#endif
 

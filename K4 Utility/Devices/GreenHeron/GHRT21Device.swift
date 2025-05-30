@@ -6,19 +6,24 @@
 //
 
 import Foundation
+import Combine
+import SwiftUI  // for SettingsStore access
 
 /// Handles TCP/IP communication and polling for the GreenHeron RT-21 rotator
 class GHRT21Device: ObservableObject {
     @Published var isConnected: Bool = false
     @Published var status: String = ""
     @Published var debugEnabled: Bool = false
+    @Published var connectionError: String?
 
     private var client: TCPClient?
     private var buffer = Data()
     private var pollingTimer: Timer?
 
-    var ipAddress: String = "192.168.1.8"
-    var port: Int = 6555
+    @Published var ipAddress: String = ""
+    @Published var port: Int = 0
+    private var settingsStore: SettingsStore
+    private var cancellables = Set<AnyCancellable>()
 
     /// Helper for conditional logging
     private func log(_ message: String) {
@@ -27,18 +32,63 @@ class GHRT21Device: ObservableObject {
         }
     }
 
+    init(settingsStore: SettingsStore) {
+        self.settingsStore = settingsStore
+        // Load saved settings
+        let saved = settingsStore.settings.ghrt21
+        self.ipAddress = saved.device.ipAddress
+        self.port = saved.device.port
+        self.presetNames = saved.presetNames
+        self.presetAzimuths = saved.presetAzimuths
+
+        // Persist simple settings
+        $ipAddress
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.ghrt21.device.ipAddress = new
+            }
+            .store(in: &cancellables)
+
+        $port
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.ghrt21.device.port = new
+            }
+            .store(in: &cancellables)
+
+        // Persist presets
+        $presetNames
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.ghrt21.presetNames = new
+            }
+            .store(in: &cancellables)
+
+        $presetAzimuths
+            .dropFirst()
+            .sink { [weak self] new in
+                self?.settingsStore.settings.ghrt21.presetAzimuths = new
+            }
+            .store(in: &cancellables)
+    }
+
     /// Establishes TCPClient connection and starts polling
     func connect() {
         log("🔗 GHRT21: Attempting to connect to \(ipAddress):\(port)")
         client = TCPClient()
         client?.onReceive = handleIncoming(data:)
-        client?.connect(host: ipAddress, port: UInt16(port))
-        isConnected = true
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.pollStatus()
-        }
-        if let t = pollingTimer {
-            RunLoop.main.add(t, forMode: .common)
+        client?.onDisconnect = handleDisconnect
+        let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
+        if success {
+            isConnected = true
+            pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                self?.pollStatus()
+            }
+            if let t = pollingTimer {
+                RunLoop.main.add(t, forMode: .common)
+            }
+        } else {
+            handleConnectionError()
         }
     }
 
@@ -51,6 +101,29 @@ class GHRT21Device: ObservableObject {
         client?.onReceive = nil
         client = nil
         isConnected = false
+    }
+
+    private func handleConnectionError() {
+        log("❌ GHRT21: Connection failed to \(ipAddress):\(port)")
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+        client?.disconnect()
+        client?.onReceive = nil
+        client = nil
+        DispatchQueue.main.async {
+            self.connectionError = "Unable to reach device at \(self.ipAddress):\(self.port)"
+        }
+    }
+
+    private func handleDisconnect() {
+        log("🔴 GHRT21: Connection lost")
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+        client = nil
+        DispatchQueue.main.async {
+            self.isConnected = false
+            self.connectionError = "Connection lost"
+        }
     }
 
     /// Send the AI; command to request current status from the rotator

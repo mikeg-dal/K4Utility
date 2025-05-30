@@ -47,15 +47,3 @@ struct DeviceSettingsView: View {
     }
 }
 
-#if DEBUG
-struct DeviceSettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        DeviceSettingsView(
-            steppirDevice: SteppIRDevice(),
-            elecraftDevice: ElecraftK4Device(),
-            kpaDevice: ElecraftKPA1500Device(),
-            rotatorDevice: GHRT21Device()
-        )
-    }
-}
-#endif
