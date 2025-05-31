@@ -53,7 +53,7 @@ struct SteppIRDashboardView: View {
                         ? Color(red: 66/255, green: 100/255, blue: 157/255)
                         : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
-                    .cornerRadius(13)
+                    .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
 
                     Button("180") {
@@ -65,7 +65,7 @@ struct SteppIRDashboardView: View {
                         ? Color(red: 66/255, green: 100/255, blue: 157/255)
                         : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
-                    .cornerRadius(13)
+                    .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
 
                     Button("BID") {
@@ -77,7 +77,7 @@ struct SteppIRDashboardView: View {
                         ? Color(red: 66/255, green: 100/255, blue: 157/255)
                         : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
-                    .cornerRadius(13)
+                    .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
                 }
                 HStack(spacing: 8) {
@@ -88,7 +88,7 @@ struct SteppIRDashboardView: View {
                     .padding(6)
                     .background(Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
-                    .cornerRadius(13)
+                    .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
 
                     // Updated Auto button to directly call setAuto and reflect action
@@ -101,7 +101,7 @@ struct SteppIRDashboardView: View {
                         ? Color(red: 66/255, green: 100/255, blue: 157/255)
                         : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
-                    .cornerRadius(13)
+                    .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
 
                     Button("Calibrate") {
@@ -111,7 +111,7 @@ struct SteppIRDashboardView: View {
                     .padding(6)
                     .background(Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
-                    .cornerRadius(13)
+                    .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
                 }
             }
@@ -133,7 +133,7 @@ struct SteppIRDashboardView: View {
                             ? Color(red: 66/255, green: 100/255, blue: 157/255)
                             : Color(red: 61/255, green: 61/255, blue: 61/255))
                         .foregroundColor(.white)
-                        .cornerRadius(13)
+                        .cornerRadius(2)
                     }
                 }
                 HStack(spacing: 8) {
@@ -151,7 +151,7 @@ struct SteppIRDashboardView: View {
                             ? Color(red: 66/255, green: 100/255, blue: 157/255)
                             : Color(red: 61/255, green: 61/255, blue: 61/255))
                         .foregroundColor(.white)
-                        .cornerRadius(13)
+                        .cornerRadius(2)
                     }
                 }
             }

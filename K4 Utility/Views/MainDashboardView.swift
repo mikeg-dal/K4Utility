@@ -21,8 +21,10 @@ struct MainDashboardView: View {
             // Top-left info panel
             VStack(alignment: .leading, spacing: 12) {
                 SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
-                ElecraftKPA1500DashboardView(device: kpaDevice)
-                ElecraftK4DashboardView(device: elecraftDevice)
+                HStack(alignment: .top, spacing: 12) {
+                    ElecraftKPA1500DashboardView(device: kpaDevice)
+                    ElecraftK4DashboardView(device: elecraftDevice)
+                }
                 GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
             }
             .padding()

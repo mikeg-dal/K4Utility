@@ -14,6 +14,11 @@ class ElecraftK4Device: ObservableObject {
     @Published var currentFrequencyDisplay: String = ""
     @Published var isConnected: Bool = false
     @Published var connectionError: String?
+    @Published var ipAddress: String
+    @Published var port: Int
+    @Published var forwardPower: Double = 0
+    @Published var reflectedPower: Double = 0
+    @Published var swr: Double = 1.0
 
     @Published var debugEnabled: Bool = false {
         didSet {
@@ -25,8 +30,7 @@ class ElecraftK4Device: ObservableObject {
         }
     }
 
-    @Published var ipAddress: String = "192.168.1.10"
-    @Published var port: Int = 9200
+ 
     private var settingsStore: SettingsStore
     private var cancellables = Set<AnyCancellable>()
     private var client: TCPClient?
@@ -35,7 +39,8 @@ class ElecraftK4Device: ObservableObject {
 
     init(settingsStore: SettingsStore) {
         self.settingsStore = settingsStore
-        // Load saved settings
+        
+        // Initialize address and port from settings
         let saved = settingsStore.settings.k4
         self.ipAddress = saved.ipAddress
         self.port = saved.port
@@ -65,12 +70,10 @@ class ElecraftK4Device: ObservableObject {
         let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
         if success {
             isConnected = true
-            pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-                self?.sendCommand("FA;")
-            }
-            if let timer = pollingTimer {
-                RunLoop.main.add(timer, forMode: .common)
-            }
+            // Send initial info commands once
+            self.sendCommand("FA;")
+            self.sendCommand("AI5;")
+            self.sendCommand("TM1;")
         } else {
             handleConnectionError()
         }
@@ -100,6 +103,56 @@ class ElecraftK4Device: ObservableObject {
                         self.frequencyHz = freq
                         self.currentFrequencyDisplay = freqStr
                         self.log("📥 K4D: Received FA frequency update: \(freq)")
+                    }
+                }
+            }
+            else if line.hasPrefix("TM") {
+                // TM aaabbbcccddd; either comma-separated or fixed-width
+                let body = line.dropFirst(2)
+                if body.contains(",") {
+                    // comma-separated: fwd,ref,alckey,swr,...
+                    let parts = body.split(separator: ",")
+                    if parts.count >= 4,
+                       let fwd = Double(parts[0]),
+                       let ref = Double(parts[1]),
+                       let swrTenths = Double(parts[3]) {
+                        DispatchQueue.main.async {
+                            self.forwardPower = fwd
+                            self.reflectedPower = ref
+                            self.swr = swrTenths / 10.0
+                        }
+                    }
+                } else if body.count >= 12 {
+                    // fixed-width: aaa (ALC), bbb (CMP), ccc (FWD), ddd (SWR)
+                    let str = String(body)
+                    let fwdStr = String(str[str.index(str.startIndex, offsetBy: 6)..<str.index(str.startIndex, offsetBy: 9)])
+                    let refStr = String(str[str.index(str.startIndex, offsetBy: 3)..<str.index(str.startIndex, offsetBy: 6)])
+                    let swrStr = String(str[str.index(str.startIndex, offsetBy: 9)..<str.index(str.startIndex, offsetBy: 12)])
+                    if let fwd = Double(fwdStr), let ref = Double(refStr), let swrTenths = Double(swrStr) {
+                        DispatchQueue.main.async {
+                            self.forwardPower = fwd
+                            self.reflectedPower = ref
+                            self.swr = swrTenths / 10.0
+                        }
+                    }
+                }
+            }
+            else if line.hasPrefix("PO") {
+                // POwwww
+                let value = line.dropFirst(2).dropLast()
+                if let total = Double(value) {
+                    DispatchQueue.main.async {
+                        // total transmit power; re-use forwardPower or store separately if needed
+                        self.forwardPower = total
+                    }
+                }
+            }
+            else if line.hasPrefix("SW") {
+                // SWsss
+                let value = line.dropFirst(2).dropLast()
+                if let tenths = Double(value) {
+                    DispatchQueue.main.async {
+                        self.swr = tenths / 10.0
                     }
                 }
             }
@@ -145,4 +198,3 @@ class ElecraftK4Device: ObservableObject {
         }
     }
 }
-

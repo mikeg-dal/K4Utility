@@ -33,23 +33,66 @@ struct ElecraftKPA1500DashboardView: View {
                     .font(.subheadline)
             }
 
-            // Operate/Standby Controls
-            HStack(spacing: 8) {
-                Button(device.operateMode == "Operate" ? "Standby" : "Operate") {
-                    // Toggle between Operate and Standby
-                    let shouldOperate = device.operateMode != "Operate"
-                    device.setOperateMode(shouldOperate)
+            // Operate/Standby and Additional Controls
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    // Standby/Operate
+                    Button(device.operateMode == "Operate" ? "Standby" : "Operate") {
+                        let shouldOperate = device.operateMode != "Operate"
+                        device.setOperateMode(shouldOperate)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(minWidth: 30)
+                    .font(.caption2)
+                    .padding(6)
+                    .background(device.operateMode == "Operate"
+                                ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                                : Color(red: 61/255, green: 61/255, blue: 61/255))
+                    .foregroundColor(.white)
+                    .cornerRadius(1)
+
+                    // Button1
+                    Button("Antenna") {
+                        // TODO: Implement action
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(minWidth: 30)
+                    .font(.caption2)
+                    .padding(6)
+                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                    .foregroundColor(.white)
+                    .cornerRadius(1)
                 }
-                .buttonStyle(PlainButtonStyle())
-                .frame(minWidth: 80)
-                .font(.caption2)
-                .padding(6)
-                .background(device.operateMode == "Operate"
-                            ? Color(red: 66/255, green: 100/255, blue: 157/255)
-                            : Color(red: 61/255, green: 61/255, blue: 61/255))
-                .foregroundColor(.white)
-                .cornerRadius(1)
+                .padding(3)
+
+                HStack(spacing: 8) {
+                    // Button2
+                    Button("ATU") {
+                        // TODO: Implement action
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(minWidth: 30)
+                    .font(.caption2)
+                    .padding(6)
+                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                    .foregroundColor(.white)
+                    .cornerRadius(1)
+
+                    // Button3
+                    Button("Reset") {
+                        // TODO: Implement action
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(minWidth: 30)
+                    .font(.caption2)
+                    .padding(6)
+                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                    .foregroundColor(.white)
+                    .cornerRadius(1)
+                }
+                .padding(3)
             }
+            .padding(8)
 
             // Power metrics
             VStack(alignment: .leading, spacing: 4) {
@@ -63,7 +106,7 @@ struct ElecraftKPA1500DashboardView: View {
             GradientMeterView(value: device.forwardPower,
                               minValue: 0,
                               maxValue: 1500)
-                .frame(width: 125, height: 16)
+                .frame(width: 90, height: 16)
                 .animation(.easeOut(duration: 0.5), value: device.forwardPower)
                 .cornerRadius(1)
 

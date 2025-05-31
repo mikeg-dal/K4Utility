@@ -39,6 +39,26 @@ struct ElecraftK4DashboardView: View {
                      : "")
                     .bold()
             }
+
+            // Power metrics
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: "Fwd: %.0f W   Ref: %.0f W", device.forwardPower, device.reflectedPower))
+                    .font(.caption)
+                Text(String(format: "SWR: %.1f", device.swr))
+                    .font(.caption)
+            }
+
+            // Forward power meter
+            GradientMeterView(value: device.forwardPower,
+                              minValue: 0,
+                              maxValue: 100)
+                .frame(width: 90, height: 16)
+                .animation(.easeOut(duration: 0.5), value: device.forwardPower)
+                .cornerRadius(1)
+
+            // Meter value label
+            Text(String(format: "%.0f W", device.forwardPower))
+                .font(.caption)
         }
         .padding(8)
         .overlay(
@@ -47,8 +67,3 @@ struct ElecraftK4DashboardView: View {
         )
     }
 }
-
-
-    
-
-

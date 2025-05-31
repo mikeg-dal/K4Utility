@@ -30,13 +30,13 @@ struct GHRT21DashboardView: View {
                         }) {
                             Text(device.presetNames[index])
                                 .font(.caption2)
-                                .frame(minWidth: 60)
+                                .frame(minWidth: 50)
                                 .padding(6)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .background(Color.gray)
+                        .background(Color(red:61/255, green: 61/255, blue: 61/255))
                         .foregroundColor(.white)
-                        .cornerRadius(8)
+                        .cornerRadius(2)
                     }
                 }
             }
@@ -76,7 +76,7 @@ struct GHRT21DashboardView: View {
                     .frame(minWidth: 40)
                     .font(.caption2)
                     .padding(6)
-                    .background(Color.gray)
+                    .background(Color.red)
                     .foregroundColor(.white)
                     .cornerRadius(8)
                 }
