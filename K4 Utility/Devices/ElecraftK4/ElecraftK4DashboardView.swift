@@ -1,17 +1,23 @@
 //
-// ElecraftK4DashboardView.swift
-// K4 Utility
+//  ElecraftK4DashboardView.swift
+//  K4 Utility
 //
-// Created by Mike Garcia on 5/21/25.
+//  Created by Mike Garcia on 5/21/25.
 //
-
 
 import SwiftUI
 
-
+/// A SwiftUI view that displays the dashboard for the Elecraft K4 transceiver,
+/// showing connection status, current frequency, power metrics, and meters.
 struct ElecraftK4DashboardView: View {
+    /// The observed Elecraft K4 device which provides published properties
+    /// such as frequency, power, and connection status.
     @ObservedObject var device: ElecraftK4Device
 
+    /// Formats an integer Hertz value into a human-readable string in the form "MHz.KHz.Hz".
+    ///
+    /// - Parameter hz: The frequency in Hertz (e.g., 7100000 for 7.100 MHz).
+    /// - Returns: A formatted string, such as "7.100.000".
     private func formatFrequency(_ hz: Int) -> String {
         let mhz = hz / 1_000_000
         let remainder = hz % 1_000_000
@@ -22,7 +28,10 @@ struct ElecraftK4DashboardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Connection status
+            // MARK: – Connection Status Indicator
+
+            /// A small circle that is green when the device is connected and red when disconnected,
+            /// accompanied by the label "K4D".
             HStack {
                 Circle()
                     .fill(device.isConnected ? Color.green : Color.red)
@@ -31,7 +40,10 @@ struct ElecraftK4DashboardView: View {
                     .font(.headline)
             }
 
-            // Frequency display
+            // MARK: – Frequency Display
+
+            /// Shows the current frequency in MHz based on `device.frequencyHz`. If no frequency 
+            /// is available (i.e., zero), the view displays nothing.
             HStack {
                 let hz = device.frequencyHz
                 Text(hz > 0
@@ -40,7 +52,10 @@ struct ElecraftK4DashboardView: View {
                     .bold()
             }
 
-            // Power metrics
+            // MARK: – Power Metrics
+
+            /// Displays the forward power, reflected power, and SWR values as text labels
+            /// using values from `device.forwardPower`, `device.reflectedPower`, and `device.swr`.
             VStack(alignment: .leading, spacing: 4) {
                 Text(String(format: "Fwd: %.0f W   Ref: %.0f W", device.forwardPower, device.reflectedPower))
                     .font(.caption)
@@ -48,7 +63,10 @@ struct ElecraftK4DashboardView: View {
                     .font(.caption)
             }
 
-            // Forward power meter
+            // MARK: – Forward Power Meter
+
+            /// A horizontal gradient meter showing the device's forward power.
+            /// Use `device.forwardPower` for the meter's value, with a range from 0 to 100 (adjustable).
             GradientMeterView(value: device.forwardPower,
                               minValue: 0,
                               maxValue: 100)
@@ -56,7 +74,9 @@ struct ElecraftK4DashboardView: View {
                 .animation(.easeOut(duration: 0.5), value: device.forwardPower)
                 .cornerRadius(1)
 
-            // Meter value label
+            // MARK: – Meter Value Label
+
+            /// A textual label below the forward power meter displaying the numeric forward power value.
             Text(String(format: "%.0f W", device.forwardPower))
                 .font(.caption)
         }

@@ -8,13 +8,22 @@
 import SwiftUI
 import Combine
 
+/// A SwiftUI view that displays the dashboard for the SteppIR antenna controller,
+/// showing connection status, tuning status, frequency display, control buttons, and band presets.
+/// Also auto-syncs frequency from an Elecraft K4 device when tracking is disabled.
 struct SteppIRDashboardView: View {
+    /// The observed SteppIRDevice which provides published state such as frequency, direction, and tuning status.
     @ObservedObject var device: SteppIRDevice
+
+    /// The observed ElecraftK4Device used for auto-syncing frequency when SteppIR is not in tracking mode.
     @ObservedObject var k4Device: ElecraftK4Device
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Connection status
+            // MARK: – Connection Status
+
+            /// A horizontal stack with a colored circle (green when connected, red when disconnected)
+            /// and the label "SteppIR" to indicate TCP connection status.
             HStack(spacing: 8) {
                 Circle()
                     .frame(width: 12, height: 12)
@@ -23,7 +32,10 @@ struct SteppIRDashboardView: View {
                     .font(.headline)
             }
 
-            // Tuning indicator under title
+            // MARK: – Tuning Status
+
+            /// A horizontal stack with a colored circle (red when tuning in progress, green otherwise)
+            /// and the label "Tuning" to indicate current tuning status.
             HStack(spacing: 8) {
                 Circle()
                     .frame(width: 12, height: 12)
@@ -32,7 +44,9 @@ struct SteppIRDashboardView: View {
                     .font(.headline)
             }
 
-            // Frequency display
+            // MARK: – Frequency Display
+
+            /// Displays the current frequency in MHz with three decimal places if `device.frequencyHz` is non-zero.
             HStack {
                 let hz = device.frequencyHz
                 Text(hz > 0
@@ -41,11 +55,14 @@ struct SteppIRDashboardView: View {
                     .bold()
             }
 
-            // Control & direction buttons (2 rows with individual highlights)
+            // MARK: – Control & Direction Buttons
+
+            /// Renders two rows of buttons for setting direction modes, home, auto-tracking toggle, and calibration.
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
+                    /// Button to set direction to "Normal".
                     Button("Norm") {
-                        device.setDirection("Normal")
+                        device.direction = "Normal"
                     }
                     .font(.caption)
                     .padding(6)
@@ -56,8 +73,9 @@ struct SteppIRDashboardView: View {
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
 
+                    /// Button to set direction to "180".
                     Button("180") {
-                        device.setDirection("180")
+                        device.direction = "180"
                     }
                     .font(.caption)
                     .padding(6)
@@ -68,8 +86,9 @@ struct SteppIRDashboardView: View {
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
 
+                    /// Button to set direction to "BID".
                     Button("BID") {
-                        device.setDirection("BID")
+                        device.direction = "BID"
                     }
                     .font(.caption)
                     .padding(6)
@@ -81,6 +100,7 @@ struct SteppIRDashboardView: View {
                     .buttonStyle(PlainButtonStyle())
                 }
                 HStack(spacing: 8) {
+                    /// Button to send the "Home" command.
                     Button("Home") {
                         device.setHome()
                     }
@@ -91,7 +111,7 @@ struct SteppIRDashboardView: View {
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
 
-                    // Updated Auto button to directly call setAuto and reflect action
+                    /// Button to toggle auto-tracking on or off.
                     Button(device.isTrackingEnabled ? "Auto Off" : "Auto On") {
                         device.setAuto(enabled: !device.isTrackingEnabled)
                     }
@@ -104,6 +124,7 @@ struct SteppIRDashboardView: View {
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
 
+                    /// Button to send the "Calibrate" command.
                     Button("Calibrate") {
                         device.setCalibrate()
                     }
@@ -116,14 +137,15 @@ struct SteppIRDashboardView: View {
                 }
             }
 
-            // Band preset buttons
+            // MARK: – Band Preset Buttons
+
+            /// Renders two rows of buttons labeled with meter bands. When tapped, sets the frequency and retains direction.
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
                     ForEach([(80, 3650), (60, 5125), (40, 7150), (30, 10125), (20, 14200)], id: \.0) { band in
                         let isActive = abs(device.frequencyHz - band.1) <= 200
                         Button("\(band.0)m") {
-                            device.setFrequency(band.1)
-                            device.setDirection(device.direction)
+                            device.frequencyHz = band.1
                         }
                         .buttonStyle(PlainButtonStyle())
                         .frame(minWidth: 30)
@@ -140,8 +162,7 @@ struct SteppIRDashboardView: View {
                     ForEach([(17, 18125), (15, 21200), (12, 24915), (10, 28300), (6, 50300)], id: \.0) { band in
                         let isActive = abs(device.frequencyHz - band.1) <= 200
                         Button("\(band.0)m") {
-                            device.setFrequency(band.1)
-                            device.setDirection(device.direction)
+                            device.frequencyHz = band.1
                         }
                         .buttonStyle(PlainButtonStyle())
                         .frame(minWidth: 30)
@@ -161,7 +182,10 @@ struct SteppIRDashboardView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.white, lineWidth: 2)
         )
-        // Auto-sync SteppIR to K4 frequency
+        // MARK: – Auto-sync SteppIR to K4 frequency
+
+        /// Listens for frequency changes from `k4Device` and, when SteppIR auto-tracking is disabled,
+        /// updates the SteppIR frequency (rounded to the nearest 10 kHz).
         .onReceive(
             k4Device.$frequencyHz
                 .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
@@ -169,10 +193,7 @@ struct SteppIRDashboardView: View {
             guard !device.isTrackingEnabled else { return }
             let rawKHz = newHz / 1000
             let truncatedKHz = (rawKHz / 10) * 10
-            device.setFrequency(truncatedKHz)
-            device.setDirection(device.direction)
+            device.frequencyHz = truncatedKHz
         }
     }
 }
-
-

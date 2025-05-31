@@ -4,15 +4,32 @@
 //
 //  Created by Mike Garcia on 5/30/25.
 //
+
 import Foundation
 import Combine
 
+/// A persistent settings store that reads and writes application settings from a JSON file
+/// in the user's Application Support directory. Automatically saves changes to disk when the
+/// `settings` property is updated.
 final class SettingsStore: ObservableObject {
+    // MARK: – Published Properties
+    
+    /// The in-memory application settings. When modified, changes are automatically saved to disk.
     @Published var settings: AppSettings
     
+    // MARK: – Private Properties
+    
+    /// The file URL where `settings.json` is stored in Application Support.
     private let fileURL: URL
+    
+    /// Cancellables for Combine subscriptions used to observe and save settings.
     private var cancellables = Set<AnyCancellable>()
     
+    // MARK: – Initialization
+    
+    /// Initializes the `SettingsStore`, creating the Application Support directory if necessary,
+    /// loading existing settings from `settings.json`, or applying default settings if the file does not exist.
+    /// Sets up a Combine pipeline to automatically save changes to the `settings` property.
     init() {
         // 1. Construct the Application Support URL
         let fm = FileManager.default
@@ -30,9 +47,10 @@ final class SettingsStore: ObservableObject {
         if let data = try? Data(contentsOf: fileURL),
            let loaded = try? JSONDecoder().decode(AppSettings.self, from: data)
         {
+            // Successfully decoded existing settings
             settings = loaded
         } else {
-            // provide your defaults here
+            // Provide default settings when no file exists or decoding fails
             settings = AppSettings(
                 k4: DeviceSettings(ipAddress: "192.168.1.10", port: 9200),
                 kpa1500: DeviceSettings(ipAddress: "192.168.1.11", port: 9201),
@@ -45,9 +63,9 @@ final class SettingsStore: ObservableObject {
             )
         }
         
-        // 3. Automatically save on any change
+        // 3. Automatically save on any change to `settings`
         $settings
-            .dropFirst()                // skip the initial value
+            .dropFirst() // Skip the initial value to avoid saving defaults immediately
             .debounce(for: .milliseconds(200), scheduler: DispatchQueue.global())
             .sink { [weak self] new in
                 guard let self = self else { return }

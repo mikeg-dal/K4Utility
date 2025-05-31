@@ -1,16 +1,25 @@
-// GHRT21DashboardView.swift
-// K4 Utility
 //
-// Created by Mike Garcia on 5/21/25.
+//  GHRT21DashboardView.swift
+//  K4 Utility
+//
+//  Created by Mike Garcia on 5/21/25.
+//
 
 import SwiftUI
 
+/// A SwiftUI view that displays the dashboard for the GreenHeron RT-21 rotator,
+/// showing connection status, current heading with beam wedge visualization, preset buttons, and step controls.
 struct GHRT21DashboardView: View {
+    /// The observed GHRT21Device providing published status, connection, and preset data.
     @ObservedObject var device: GHRT21Device
-    @ObservedObject var steppirDevice: SteppIRDevice
-    private let beamwidth: Double = 66.0    // degrees
 
-    /// Computes rotor heading, applying 180° flip if needed
+    /// An observed SteppIRDevice used to determine if a 180° flip should be applied to the heading.
+    @ObservedObject var steppirDevice: SteppIRDevice
+
+    /// The beamwidth (in degrees) used to draw the wedge overlay on the azimuth map.
+    private let beamwidth: Double = 66.0
+
+    /// Computes the rotor heading based on the device status and applies a 180° flip if `steppirDevice.direction == "180"`.
     private var computedHeading: Double {
         let raw = Double(device.status) ?? 0
         return steppirDevice.direction == "180"
@@ -19,6 +28,8 @@ struct GHRT21DashboardView: View {
     }
 
     // MARK: – Preset Grid
+
+    /// A grid of preset buttons (2 rows, 4 columns) that send `goToPreset(at:)` commands to `device`.
     private var presetGrid: some View {
         VStack(spacing: 8) {
             ForEach(0..<2, id: \.self) { row in
@@ -34,7 +45,7 @@ struct GHRT21DashboardView: View {
                                 .padding(6)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .background(Color(red:61/255, green: 61/255, blue: 61/255))
+                        .background(Color(red: 61/255, green: 61/255, blue: 61/255))
                         .foregroundColor(.white)
                         .cornerRadius(2)
                     }
@@ -46,7 +57,10 @@ struct GHRT21DashboardView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 12) {
-                // Connection status
+                // MARK: – Connection Status
+
+                /// A horizontal stack with a colored circle (green when connected, red when disconnected)
+                /// and the label "GH-RT21" to indicate connection status.
                 HStack(spacing: 8) {
                     Circle()
                         .fill(device.isConnected ? Color.green : Color.red)
@@ -55,6 +69,9 @@ struct GHRT21DashboardView: View {
                         .font(.headline)
                 }
 
+                // MARK: – Heading Visualization
+
+                /// Displays an AzimuthMapView overlaid with a BeamWedgeShape indicating the current heading.
                 ZStack {
                     AzimuthMapView()
                     BeamWedgeShape(
@@ -66,8 +83,14 @@ struct GHRT21DashboardView: View {
                 }
                 .frame(width: 200, height: 200)
 
+                // MARK: – Preset Buttons
+
+                /// The grid of preset buttons allowing the user to send the rotator to stored headings.
                 presetGrid
-                // Rotator step controls
+
+                // MARK: – Step Controls
+
+                /// A step control button that sends `stopMotion()` to the device when tapped.
                 HStack(spacing: 8) {
                     Button("■") {
                         device.stopMotion()
@@ -82,6 +105,10 @@ struct GHRT21DashboardView: View {
                 }
                 .padding(.top, 8)
             }
+
+            // MARK: – Heading Display
+
+            /// Displays the numeric heading in degrees in a small overlay box.
             Text("\(Int(computedHeading))°")
                 .font(.caption2)
                 .padding(6)
@@ -98,4 +125,3 @@ struct GHRT21DashboardView: View {
         )
     }
 }
-

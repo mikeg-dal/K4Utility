@@ -7,12 +7,19 @@
 
 import SwiftUI
 
+/// A SwiftUI view that displays the dashboard for the Elecraft KPA-1500 amplifier,
+/// showing connection status, current band, mode, control buttons, and power metrics.
 struct ElecraftKPA1500DashboardView: View {
+    /// The observed Elecraft KPA-1500 device which provides published properties
+    /// such as connection status, band, mode, and power readings.
     @ObservedObject var device: ElecraftKPA1500Device
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Connection status
+            // MARK: – Connection Status
+
+            /// A horizontal stack with a colored circle (green when connected, red when disconnected)
+            /// and the label "KPA1500" to indicate connection status.
             HStack(spacing: 8) {
                 Circle()
                     .fill(device.isConnected ? Color.green : Color.red)
@@ -21,22 +28,28 @@ struct ElecraftKPA1500DashboardView: View {
                     .font(.headline)
             }
 
-            // Band
+            // MARK: – Band Display
+
+            /// Shows the current amplifier band, or a dash if unspecified.
             HStack {
                 Text("Band: \(device.currentBand.isEmpty ? "–" : device.currentBand)")
                     .font(.subheadline)
             }
 
-            // Mode
+            // MARK: – Mode Display
+
+            /// Shows the current operate mode ("Operate" or "Standby").
             HStack {
                 Text("Mode: \(device.operateMode)")
                     .font(.subheadline)
             }
 
-            // Operate/Standby and Additional Controls
+            // MARK: – Control Buttons
+
+            /// A collection of buttons to toggle operate/standby and other amplifier functions.
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
-                    // Standby/Operate
+                    /// Button to switch between Operate and Standby modes.
                     Button(device.operateMode == "Operate" ? "Standby" : "Operate") {
                         let shouldOperate = device.operateMode != "Operate"
                         device.setOperateMode(shouldOperate)
@@ -51,7 +64,7 @@ struct ElecraftKPA1500DashboardView: View {
                     .foregroundColor(.white)
                     .cornerRadius(1)
 
-                    // Button1
+                    /// Placeholder button for selecting the antenna.
                     Button("Antenna") {
                         // TODO: Implement action
                     }
@@ -66,7 +79,7 @@ struct ElecraftKPA1500DashboardView: View {
                 .padding(3)
 
                 HStack(spacing: 8) {
-                    // Button2
+                    /// Placeholder button to engage/disengage the internal tuner (ATU).
                     Button("ATU") {
                         // TODO: Implement action
                     }
@@ -78,7 +91,7 @@ struct ElecraftKPA1500DashboardView: View {
                     .foregroundColor(.white)
                     .cornerRadius(1)
 
-                    // Button3
+                    /// Placeholder button to reset amplifier status.
                     Button("Reset") {
                         // TODO: Implement action
                     }
@@ -94,7 +107,9 @@ struct ElecraftKPA1500DashboardView: View {
             }
             .padding(8)
 
-            // Power metrics
+            // MARK: – Power Metrics
+
+            /// A vertical stack presenting forward and reflected power, input power, and SWR as text.
             VStack(alignment: .leading, spacing: 4) {
                 Text(String(format: "Fwd: %.0f W   Ref: %.0f W", device.forwardPower, device.reflectedPower))
                     .font(.caption)
@@ -102,7 +117,9 @@ struct ElecraftKPA1500DashboardView: View {
                     .font(.caption)
             }
 
-            // Forward power meter
+            // MARK: – Forward Power Meter
+
+            /// A horizontal gradient meter showing the amplifier's forward power (0–1500 W).
             GradientMeterView(value: device.forwardPower,
                               minValue: 0,
                               maxValue: 1500)
@@ -110,10 +127,11 @@ struct ElecraftKPA1500DashboardView: View {
                 .animation(.easeOut(duration: 0.5), value: device.forwardPower)
                 .cornerRadius(1)
 
-            // Meter value label
+            // MARK: – Meter Value Label
+
+            /// Displays the numeric forward power reading below the meter.
             Text(String(format: "%.0f W", device.forwardPower))
                 .font(.caption)
-
         }
         .padding(8)
         .overlay(
