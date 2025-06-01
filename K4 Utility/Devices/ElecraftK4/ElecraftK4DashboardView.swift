@@ -52,10 +52,63 @@ struct ElecraftK4DashboardView: View {
                     .bold()
             }
 
+            // MARK: – Placeholder Buttons
+
+            /// Two rows of two placeholder buttons labeled 1–4.
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Button("1") {
+                        // TODO: Implement action for button 1
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(minWidth: 30)
+                    .font(.caption2)
+                    .padding(6)
+                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                    .foregroundColor(.white)
+                    .cornerRadius(1)
+
+                    Button("2") {
+                        // TODO: Implement action for button 2
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(minWidth: 30)
+                    .font(.caption2)
+                    .padding(6)
+                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                    .foregroundColor(.white)
+                    .cornerRadius(1)
+                }
+
+                HStack(spacing: 8) {
+                    Button("3") {
+                        // TODO: Implement action for button 3
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(minWidth: 30)
+                    .font(.caption2)
+                    .padding(6)
+                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                    .foregroundColor(.white)
+                    .cornerRadius(1)
+
+                    Button("4") {
+                        // TODO: Implement action for button 4
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(minWidth: 30)
+                    .font(.caption2)
+                    .padding(6)
+                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                    .foregroundColor(.white)
+                    .cornerRadius(1)
+                }
+            }
+            .padding(8)
+            .background(Color.clear)
+
             // MARK: – Power Metrics
 
-            /// Displays the forward power, reflected power, and SWR values as text labels
-            /// using values from `device.forwardPower`, `device.reflectedPower`, and `device.swr`.
             VStack(alignment: .leading, spacing: 4) {
                 Text(String(format: "Fwd: %.0f W   Ref: %.0f W", device.forwardPower, device.reflectedPower))
                     .font(.caption)
@@ -65,8 +118,6 @@ struct ElecraftK4DashboardView: View {
 
             // MARK: – Forward Power Meter
 
-            /// A horizontal gradient meter showing the device's forward power.
-            /// Use `device.forwardPower` for the meter's value, with a range from 0 to 100 (adjustable).
             GradientMeterView(value: device.forwardPower,
                               minValue: 0,
                               maxValue: 100)
@@ -76,7 +127,6 @@ struct ElecraftK4DashboardView: View {
 
             // MARK: – Meter Value Label
 
-            /// A textual label below the forward power meter displaying the numeric forward power value.
             Text(String(format: "%.0f W", device.forwardPower))
                 .font(.caption)
         }

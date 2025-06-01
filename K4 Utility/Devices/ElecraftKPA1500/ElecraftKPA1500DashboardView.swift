@@ -50,7 +50,7 @@ struct ElecraftKPA1500DashboardView: View {
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
                     /// Button to switch between Operate and Standby modes.
-                    Button(device.operateMode == "Operate" ? "Standby" : "Operate") {
+                    Button(device.operateMode == "Operate" ? "Operate" : "Operate") {
                         let shouldOperate = device.operateMode != "Operate"
                         device.setOperateMode(shouldOperate)
                     }

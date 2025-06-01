@@ -24,7 +24,7 @@ struct SteppIRDashboardView: View {
 
             /// A horizontal stack with a colored circle (green when connected, red when disconnected)
             /// and the label "SteppIR" to indicate TCP connection status.
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 Circle()
                     .frame(width: 12, height: 12)
                     .foregroundColor(device.isConnected ? Color.green : Color.red)
@@ -59,7 +59,7 @@ struct SteppIRDashboardView: View {
 
             /// Renders two rows of buttons for setting direction modes, home, auto-tracking toggle, and calibration.
             VStack(spacing: 8) {
-                HStack(spacing: 8) {
+                HStack(spacing: 12) {
                     /// Button to set direction to "Normal".
                     Button("Norm") {
                         device.direction = "Normal"
@@ -72,6 +72,7 @@ struct SteppIRDashboardView: View {
                     .foregroundColor(.white)
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
+                    .scaleEffect(1.10)
 
                     /// Button to set direction to "180".
                     Button("180") {
@@ -85,6 +86,7 @@ struct SteppIRDashboardView: View {
                     .foregroundColor(.white)
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
+                    .scaleEffect(1.10)
 
                     /// Button to set direction to "BID".
                     Button("BID") {
@@ -98,8 +100,9 @@ struct SteppIRDashboardView: View {
                     .foregroundColor(.white)
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
+                    .scaleEffect(1.10)
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: 12) {
                     /// Button to send the "Home" command.
                     Button("Home") {
                         device.setHome()
@@ -110,6 +113,7 @@ struct SteppIRDashboardView: View {
                     .foregroundColor(.white)
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
+                    .scaleEffect(1.10)
 
                     /// Button to toggle auto-tracking on or off.
                     Button(device.isTrackingEnabled ? "Auto On" : "Auto On") {
@@ -125,6 +129,7 @@ struct SteppIRDashboardView: View {
                     .foregroundColor(.white)
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
+                    .scaleEffect(1.10)
 
                     /// Button to send the "Calibrate" command.
                     Button("Calibrate") {
@@ -136,6 +141,7 @@ struct SteppIRDashboardView: View {
                     .foregroundColor(.white)
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
+                    .scaleEffect(1.10)
                 }
             }
 
@@ -143,7 +149,7 @@ struct SteppIRDashboardView: View {
 
             /// Renders two rows of buttons labeled with meter bands. When tapped, sets the frequency and retains direction.
             VStack(spacing: 8) {
-                HStack(spacing: 8) {
+                HStack(spacing: 12) {
                     ForEach([(80, 3650), (60, 5125), (40, 7150), (30, 10125), (20, 14200)], id: \.0) { band in
                         let isActive = abs(device.frequencyHz - band.1) <= 200
                         Button("\(band.0)m") {
@@ -158,9 +164,10 @@ struct SteppIRDashboardView: View {
                             : Color(red: 61/255, green: 61/255, blue: 61/255))
                         .foregroundColor(.white)
                         .cornerRadius(2)
+                        .scaleEffect(1.10)
                     }
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: 12) {
                     ForEach([(17, 18125), (15, 21200), (12, 24915), (10, 28300), (6, 50300)], id: \.0) { band in
                         let isActive = abs(device.frequencyHz - band.1) <= 200
                         Button("\(band.0)m") {
@@ -175,6 +182,7 @@ struct SteppIRDashboardView: View {
                             : Color(red: 61/255, green: 61/255, blue: 61/255))
                         .foregroundColor(.white)
                         .cornerRadius(2)
+                        .scaleEffect(1.10)
                     }
                 }
             }

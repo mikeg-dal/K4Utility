@@ -40,14 +40,15 @@ struct MainDashboardView: View {
 
             // Top-left container for stacking device dashboards.
             VStack(alignment: .leading, spacing: 12) {
-                // SteppIR dashboard with auto-sync from K4
-                SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
-
                 // Horizontal row for amplifier and transceiver dashboards
                 HStack(alignment: .top, spacing: 12) {
-                    ElecraftKPA1500DashboardView(device: kpaDevice)
                     ElecraftK4DashboardView(device: elecraftDevice)
+                    ElecraftKPA1500DashboardView(device: kpaDevice)
+            
                 }
+
+                // SteppIR dashboard with auto-sync from K4
+                SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
 
                 // GHRT21 rotator dashboard below
                 GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
