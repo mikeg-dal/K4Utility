@@ -16,11 +16,11 @@ struct K4_UtilityApp: App {
     /// The persistent settings store for application-wide configuration.
     @StateObject private var settingsStore: SettingsStore
 
-    /// The SteppIR antenna controller device instance, shared across views.
-    @StateObject private var steppirDevice: SteppIRDevice
-
     /// The Elecraft K4 transceiver device instance, shared across views.
     @StateObject private var k4dDevice: ElecraftK4Device
+
+    /// The SteppIR antenna controller device instance, shared across views.
+    @StateObject private var steppirDevice: SteppIRDevice
 
     /// The Elecraft KPA-1500 amplifier device instance, shared across views.
     @StateObject private var kpaDevice: ElecraftKPA1500Device
@@ -37,10 +37,12 @@ struct K4_UtilityApp: App {
     /// into each device wrapper, so device IP/port settings are persisted.
     init() {
         let store = SettingsStore()
+        let k4Instance = ElecraftK4Device(settingsStore: store)
+        let steppirInstance = SteppIRDevice(settingsStore: store, k4Device: k4Instance)
         _settingsStore = StateObject(wrappedValue: store)
-        _steppirDevice = StateObject(wrappedValue: SteppIRDevice(settingsStore: store))
-        _k4dDevice = StateObject(wrappedValue: ElecraftK4Device(settingsStore: store))
-        _kpaDevice = StateObject(wrappedValue: ElecraftKPA1500Device(settingsStore: store))
+        _k4dDevice    = StateObject(wrappedValue: k4Instance)
+        _steppirDevice = StateObject(wrappedValue: steppirInstance)
+        _kpaDevice    = StateObject(wrappedValue: ElecraftKPA1500Device(settingsStore: store))
         _rotatorDevice = StateObject(wrappedValue: GHRT21Device(settingsStore: store))
     }
 

@@ -21,7 +21,7 @@ class SteppIRDevice: ObservableObject {
     /// The current direction mode ("Normal", "180", "BID", "34").
     @Published var direction: String = "Normal"
 
-    /// Whether auto-tracking is enabled (true) or disabled (false).
+    /// Whether auto-tracking is enabled (true) or why did  (false).
     @Published var isTrackingEnabled: Bool = false
 
     /// Indicates if the TCP connection to the SteppIR is established.
@@ -71,15 +71,22 @@ class SteppIRDevice: ObservableObject {
 
     /// Combine cancellables for persisting setting changes.
     private var cancellables = Set<AnyCancellable>()
+    
+    /// Stored reference to the K4 device for frequency updates
+    private let k4Device: ElecraftK4Device
 
     // MARK: – Initialization
 
-    /// Creates a new `SteppIRDevice` using the provided `SettingsStore`.
+    /// Creates a new `SteppIRDevice` using the provided `SettingsStore` and K4 device.
     /// Loads saved IP and port from the store and sets up persistence.
+    /// Subscribes to K4 frequency updates to forward to SteppIR when tracking is enabled.
     ///
-    /// - Parameter settingsStore: Shared settings store containing `steppIR` settings.
-    init(settingsStore: SettingsStore) {
+    /// - Parameters:
+    ///   - settingsStore: Shared settings store containing `steppIR` settings.
+    ///   - k4Device: The ElecraftK4Device to observe for automatic frequency sync.
+    init(settingsStore: SettingsStore, k4Device: ElecraftK4Device) {
         self.settingsStore = settingsStore
+        self.k4Device = k4Device
 
         // Load saved IP address and port
         let saved = settingsStore.settings.steppIR
@@ -99,6 +106,42 @@ class SteppIRDevice: ObservableObject {
             .dropFirst()
             .sink { [weak self] new in
                 self?.settingsStore.settings.steppIR.port = new
+            }
+            .store(in: &cancellables)
+
+        // Subscribe to K4 frequency updates to log receipt (do not send update)
+        k4Device.$frequencyHz
+            .removeDuplicates()
+            .sink { [weak self] newFreq in
+                guard let self = self, self.isConnected else {
+                    self?.log("SteppIR: Skipping frequency update because not connected")
+                    return
+                }
+                self.log("SteppIR: Received K4 freq \(newFreq), isTrackingEnabled = \(self.isTrackingEnabled)")
+            }
+            .store(in: &cancellables)
+
+        // Debounce K4 frequency changes and send one update when auto-tracking is enabled
+        k4Device.$frequencyHz
+            .removeDuplicates()
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .sink { [weak self, weak k4Device] newFreq in
+                guard let self = self, let k4 = k4Device, self.isConnected, self.isTrackingEnabled else {
+                    return
+                }
+                let freqHz = k4.frequencyHz
+                self.sendFrequencyUpdate(freqHz)
+            }
+            .store(in: &cancellables)
+
+        // When direction changes while auto-tracking is on, send an update
+        $direction
+            .dropFirst()
+            .sink { [weak self, weak k4Device] newDir in
+                guard let self = self, let k4 = k4Device, self.isConnected, self.isTrackingEnabled else {
+                    return
+                }
+                self.sendFrequencyUpdate(k4.frequencyHz)
             }
             .store(in: &cancellables)
     }
@@ -241,7 +284,6 @@ class SteppIRDevice: ObservableObject {
             switch dirBits >> 5 {
             case 0: self.direction = "Normal"
             case 2: self.direction = "180"
-            case 3: self.direction = "3/4"
             case 4: self.direction = "BID"
             default: self.direction = "Normal"
             }
@@ -279,6 +321,30 @@ class SteppIRDevice: ObservableObject {
         }
         return data
     }
+    
+    // MARK: – Private Helper: Send Frequency Update
+    
+    /// Formats and sends a frequency update packet to the SteppIR controller.
+    /// - Parameter freqHz: Frequency in Hertz to send.
+    private func sendFrequencyUpdate(_ freqHz: Int) {
+        let tenHzUnits = freqHz / 10
+        let hexFreq = String(format: "%06X", tenHzUnits & 0xFFFFFF)
+        var packet = "404100" + hexFreq + "00"
+        switch self.direction.uppercased() {
+        case "BID":
+            packet += "80"
+        case "180":
+            packet += "40"
+        default:
+            packet += "00"
+        }
+        // Append auto‐bit = 0x52 (keep tracking enabled) and terminator
+        packet += "52" + "000D"
+        if let data = self.hexStringToData(packet) {
+            self.log("SteppIR: [DEBUG] Sending raw data: \(data as NSData)")
+            client?.send(data)
+        }
+    }
 
     // MARK: – Public API: Control Commands
 
@@ -294,6 +360,7 @@ class SteppIRDevice: ObservableObject {
         command += "53000D"
         log("SteppIR: Sending HOME command \(command)")
         if let data = hexStringToData(command) {
+            self.log("SteppIR: [DEBUG] Sending HOME raw data: \(data as NSData)")
             client?.send(data)
         }
     }
@@ -312,17 +379,20 @@ class SteppIRDevice: ObservableObject {
         switch direction.uppercased() {
         case "BID": command += "80"
         case "180": command += "40"
-        case "34": command += "20"
         default: command += "00"
         }
-        let toggleCode = enabled ? "55" : "52"
+        let toggleCode = enabled ? "52" : "55"
         command += toggleCode + "000D"
         log("SteppIR: Sending AUTO command \(command)")
         if let data = hexStringToData(command) {
+            self.log("SteppIR: [DEBUG] Sending AUTO raw data: \(data as NSData)")
             client?.send(data)
         }
         DispatchQueue.main.async {
             self.isTrackingEnabled = enabled
+        }
+        if enabled, client != nil {
+            sendFrequencyUpdate(k4Device.frequencyHz)
         }
     }
 
@@ -338,6 +408,7 @@ class SteppIRDevice: ObservableObject {
         command += "56000D"
         log("SteppIR: Sending CALIBRATE command \(command)")
         if let data = hexStringToData(command) {
+            self.log("SteppIR: [DEBUG] Sending CALIBRATE raw data: \(data as NSData)")
             client?.send(data)
         }
     }

@@ -112,14 +112,16 @@ struct SteppIRDashboardView: View {
                     .buttonStyle(PlainButtonStyle())
 
                     /// Button to toggle auto-tracking on or off.
-                    Button(device.isTrackingEnabled ? "Auto Off" : "Auto On") {
+                    Button(device.isTrackingEnabled ? "Auto On" : "Auto On") {
                         device.setAuto(enabled: !device.isTrackingEnabled)
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(!device.isTrackingEnabled
-                        ? Color(red: 66/255, green: 100/255, blue: 157/255)
-                        : Color(red: 61/255, green: 61/255, blue: 61/255))
+                    .background(
+                        device.isTrackingEnabled
+                            ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                            : Color(red: 61/255, green: 61/255, blue: 61/255)
+                    )
                     .foregroundColor(.white)
                     .cornerRadius(2)
                     .buttonStyle(PlainButtonStyle())
@@ -190,7 +192,7 @@ struct SteppIRDashboardView: View {
             k4Device.$frequencyHz
                 .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
         ) { newHz in
-            guard !device.isTrackingEnabled else { return }
+            guard device.isTrackingEnabled else { return }
             let rawKHz = newHz / 1000
             let truncatedKHz = (rawKHz / 10) * 10
             device.frequencyHz = truncatedKHz
