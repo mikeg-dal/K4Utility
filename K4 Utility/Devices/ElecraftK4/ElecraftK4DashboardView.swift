@@ -13,6 +13,7 @@ struct ElecraftK4DashboardView: View {
     /// The observed Elecraft K4 device which provides published properties
     /// such as frequency, power, and connection status.
     @ObservedObject var device: ElecraftK4Device
+    @State private var isTuning: Bool = false
 
     /// Formats an integer Hertz value into a human-readable string in the form "MHz.KHz.Hz".
     ///
@@ -45,10 +46,11 @@ struct ElecraftK4DashboardView: View {
             /// Shows the current frequency in MHz based on `device.frequencyHz`. If no frequency 
             /// is available (i.e., zero), the view displays nothing.
             HStack {
-                let hz = device.frequencyHz
-                Text(hz > 0
-                     ? "\(formatFrequency(hz)) MHz"
-                     : "")
+                Text(device.isConnected
+                     ? (device.frequencyHz > 0
+                        ? "\(formatFrequency(device.frequencyHz)) MHz"
+                        : "")
+                     : "–")
                     .bold()
             }
 
@@ -57,18 +59,27 @@ struct ElecraftK4DashboardView: View {
             /// Two rows of two placeholder buttons labeled 1–4.
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
-                    Button("1") {
-                        // TODO: Implement action for button 1
+                    Button(action: {
+                        if isTuning {
+                            device.stopTune()
+                        } else {
+                            device.startTune()
+                        }
+                        isTuning.toggle()
+                    }) {
+                        Text("Tune")
+                            .frame(minWidth: 30)
+                            .font(.caption2)
+                            .padding(6)
+                            .background(isTuning
+                                        ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                                        : Color(red: 61/255, green: 61/255, blue: 61/255))
+                            .foregroundColor(.white)
+                            .cornerRadius(1)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .frame(minWidth: 30)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                    .foregroundColor(.white)
-                    .cornerRadius(1)
 
-                    Button("2") {
+                    Button("Ant") {
                         // TODO: Implement action for button 2
                     }
                     .buttonStyle(PlainButtonStyle())

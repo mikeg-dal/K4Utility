@@ -78,7 +78,7 @@ struct GHRT21DashboardView: View {
                         heading: computedHeading,
                         beamwidth: beamwidth
                     )
-                    .fill(Color.green.opacity(0.3))
+                    .fill(Color.green.opacity(0.55))
                     .animation(.easeOut(duration: 0.3), value: computedHeading)
                 }
                 .frame(width: 200, height: 200)

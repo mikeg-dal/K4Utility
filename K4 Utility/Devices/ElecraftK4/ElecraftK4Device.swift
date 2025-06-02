@@ -113,23 +113,29 @@ public class ElecraftK4Device: ObservableObject {
 
         // Create a fresh TCPClient
         client = TCPClient()
+        log("🔧 K4D: Initialized new TCPClient instance")
         client?.onReceive = handleIncoming(data:)
         client?.onDisconnect = handleDisconnect
 
         // Attempt to connect
         let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
         if success {
+            log("✅ K4D: TCPClient.connect(host:\(ipAddress), port:\(port)) succeeded")
             DispatchQueue.main.async {
                 self.isConnected = true
                 self.connectionError = nil
             }
 
             // Optionally: send any “initialization” commands once connected.
+            log("ℹ️ K4D: Sending initialization command FA;")
             sendCommand("FA;")  // Request frequency
+            log("ℹ️ K4D: Sending initialization command AI5;")
             sendCommand("AI5;") // Request some status subset (e.g. forward/reflected)
+            log("ℹ️ K4D: Sending initialization command TM1;")
             sendCommand("TM1;") // Request meter data
             startPollingTimer()
         } else {
+            log("❌ K4D: TCPClient.connect(host:\(ipAddress), port:\(port)) failed")
             handleConnectionError()
         }
     }
@@ -137,6 +143,7 @@ public class ElecraftK4Device: ObservableObject {
     /// Stops polling, tears down the TCP connection, and sets `isConnected = false`.
     public func disconnect() {
         log("🔌 K4D: Disconnecting from \(ipAddress):\(port)")
+        log("🛑 K4D: Teardown TCPClient and clear state")
         pollingTimer?.invalidate()
         pollingTimer = nil
 
@@ -150,6 +157,7 @@ public class ElecraftK4Device: ObservableObject {
         }
     }
 
+
     /// Sends a raw command string (e.g. “FA;”, “FRxxxx;”, etc.) to the K4.
     /// The string will be suffixed with CR before sending.
     public func sendCommand(_ command: String) {
@@ -159,6 +167,18 @@ public class ElecraftK4Device: ObservableObject {
             return
         }
         client?.send(payload)
+    }
+
+    /// Initiates the tuning process on the K4 transceiver.
+    public func startTune() {
+        // Send the command to begin tuning (TU2;)
+        sendCommand("TU2;")
+    }
+
+    /// Stops the tuning process on the K4 transceiver.
+    public func stopTune() {
+        // Send the command to end tuning (TU0;)
+        sendCommand("TU0;")
     }
 
     // MARK: – Private Helpers
@@ -177,16 +197,21 @@ public class ElecraftK4Device: ObservableObject {
     /// Called by `TCPClient` whenever raw Data arrives.
     /// Append to `buffer` and parse out complete “;”-terminated messages.
      func handleIncoming(data: Data) {
+        if let incomingStr = String(data: data, encoding: .utf8) {
+            log("📥 K4D: Raw incoming data chunk: '\(incomingStr)'")
+        }
         // Make sure data can be interpreted as UTF8 (or you can handle binary if needed)
         guard String(data: data, encoding: .utf8) != nil else { return }
         buffer.append(data)
 
         // Try splitting on “;” (semicolon) since K4 messages are “<CMD><payload>;”
         let bufferStr = String(decoding: buffer, as: UTF8.self)
+        log("📥 K4D: Buffer string before splitting: '\(bufferStr)'")
         let segments = bufferStr.components(separatedBy: ";")
 
         // The last element in segments may be a partial message, so process all but the last
         for raw in segments.dropLast() {
+            log("📥 K4D: Complete message to parse: '\(raw);'")
             parseLine(raw + ";")
         }
 
@@ -204,10 +229,13 @@ public class ElecraftK4Device: ObservableObject {
         guard trimmed.hasSuffix(";") else { return }
         let content = String(trimmed.dropLast()) // remove “;”
 
+        log("🔍 K4D: parseLine received content: '\(content)'")
+
         if content.hasPrefix("FA") {
             // FAxxxxxx  → frequency in Hz
             let freqStr = String(content.dropFirst(2))
             if let freq = Int(freqStr) {
+                log("ℹ️ K4D: Parsed FA → frequency = \(freqStr)")
                 DispatchQueue.main.async {
                     self.frequencyHz = freq
                     self.currentFrequencyDisplay = freqStr
@@ -218,16 +246,18 @@ public class ElecraftK4Device: ObservableObject {
         else if content.hasPrefix("TM") {
             // TM<…> could be comma‐separated or fixed‐width.
             // Example comma: TM<x.y,<ref>,<alckey>,<swr>,…>
+            log("ℹ️ K4D: TM‐prefix message = '\(content)'")
             let body = String(content.dropFirst(2))
             if body.contains(",") {
                 let parts = body.split(separator: ",")
+                log("📊 K4D: TM CSV parts = \(parts)")
                 if parts.count >= 4,
                    let fwd = Double(parts[0]),
                    let ref = Double(parts[1]),
                    let swrTenths = Double(parts[3]) {
                     DispatchQueue.main.async {
-                        self.forwardPower = fwd
-                        self.reflectedPower = ref
+                        self.forwardPower = fwd / 10.0
+                        self.reflectedPower = ref / 10.0
                         self.swr = swrTenths / 10.0
                     }
                 }
@@ -238,12 +268,13 @@ public class ElecraftK4Device: ObservableObject {
                 let refStr = String(str[str.index(str.startIndex, offsetBy: 3)..<str.index(str.startIndex, offsetBy: 6)])
                 let fwdStr = String(str[str.index(str.startIndex, offsetBy: 6)..<str.index(str.startIndex, offsetBy: 9)])
                 let swrStr = String(str[str.index(str.startIndex, offsetBy: 9)..<str.index(str.startIndex, offsetBy: 12)])
+                log("📊 K4D: TM fixed-width segments fwdStr=\(fwdStr), refStr=\(refStr), swrStr=\(swrStr)")
                 if let fwd = Double(fwdStr),
                    let ref = Double(refStr),
                    let swrTenths = Double(swrStr) {
                     DispatchQueue.main.async {
-                        self.forwardPower = fwd
-                        self.reflectedPower = ref
+                        self.forwardPower = fwd / 10.0
+                        self.reflectedPower = ref / 10.0
                         self.swr = swrTenths / 10.0
                     }
                 }
@@ -253,8 +284,9 @@ public class ElecraftK4Device: ObservableObject {
             // POwwww  → total transmit power (reuse fwd or store separately)
             let valStr = String(content.dropFirst(2))
             if let total = Double(valStr) {
+                log("ℹ️ K4D: PO‐prefix message = '\(content)'")
                 DispatchQueue.main.async {
-                    self.forwardPower = total
+                    self.forwardPower = total / 10.0
                 }
             }
         }
@@ -262,12 +294,14 @@ public class ElecraftK4Device: ObservableObject {
             // SWsss → SWR in tenths
             let valStr = String(content.dropFirst(2))
             if let tenths = Double(valStr) {
+                log("ℹ️ K4D: SW‐prefix message = '\(content)'")
                 DispatchQueue.main.async {
                     self.swr = tenths / 10.0
                 }
             }
         }
         else {
+            log("⚠️ K4D: Unhandled prefix encountered")
             // TODO: Handle any other K4‐specific messages (e.g. AGC, mode changes, etc.)
             log("ℹ️ K4D: Unhandled prefix: \(content)")
         }

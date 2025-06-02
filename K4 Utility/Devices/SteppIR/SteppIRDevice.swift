@@ -163,11 +163,13 @@ class SteppIRDevice: ObservableObject {
     func connect() {
         log("🔗 SteppIR: Attempting to connect to \(ipAddress):\(port)")
         client = TCPClient()
+        log("🔧 SteppIR: Initialized new TCPClient instance")
         client?.onReceive = handleIncoming(data:)
         client?.onDisconnect = handleDisconnect
 
         let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
         if success {
+            log("✅ SteppIR: TCPClient.connect(host:\(ipAddress), port:\(port)) succeeded")
             DispatchQueue.main.async {
                 self.isConnected = true
             }
@@ -178,6 +180,7 @@ class SteppIRDevice: ObservableObject {
                 RunLoop.main.add(timer, forMode: .common)
             }
         } else {
+            log("❌ SteppIR: TCPClient.connect(host:\(ipAddress), port:\(port)) failed")
             handleConnectionError()
         }
     }
@@ -185,6 +188,7 @@ class SteppIRDevice: ObservableObject {
     /// Disconnects from the SteppIR controller, stops polling, and resets connection state.
     func disconnect() {
         log("🔌 SteppIR: Disconnecting")
+        log("🛑 SteppIR: Teardown TCPClient and clear state")
         pollingTimer?.invalidate()
         pollingTimer = nil
 
@@ -245,13 +249,25 @@ class SteppIRDevice: ObservableObject {
     ///
     /// - Parameter data: The raw incoming `Data` chunk.
     private func handleIncoming(data: Data) {
+        if let incomingStr = String(data: data, encoding: .utf8) {
+            log("📥 SteppIR: Raw incoming data chunk: '\(incomingStr)'")
+        }
         log("SteppIR: Received \(data.count) bytes: \(data as NSData)")
         buffer.append(data)
 
-        while let terminatorRange = buffer.range(of: Data([0x0D])) {
-            let frame = buffer.subdata(in: 0..<terminatorRange.upperBound)
-            buffer.removeSubrange(0..<terminatorRange.upperBound)
-            processResponseSteppir(frame)
+        // Extract all complete frames up to the 0x0D terminator
+        while let termIndex = buffer.firstIndex(of: 0x0D) {
+            // Look for the SteppIR header 0x40 0x41 before the terminator
+            if let headerIdx = buffer.firstIndex(of: 0x40),
+               headerIdx + 1 < buffer.count,
+               buffer[headerIdx + 1] == 0x41,
+               headerIdx < termIndex {
+                // Slice out exactly from 0x40 through 0x0D
+                let fullFrame = buffer.subdata(in: headerIdx..<buffer.index(after: termIndex))
+                processResponseSteppir(fullFrame)
+            }
+            // Drop everything up through the terminator, even if no valid header was found
+            buffer.removeSubrange(0...termIndex)
         }
     }
 
@@ -259,11 +275,12 @@ class SteppIRDevice: ObservableObject {
     ///
     /// - Parameter data: The raw response `Data` including the terminator.
     private func processResponseSteppir(_ data: Data) {
+        log("🔍 SteppIR: Processing raw frame data: \(data as NSData)")
         let hexString = data.map { String(format: "%02X", $0) }.joined()
         log("SteppIR: Processing frame \(hexString)")
 
         guard hexString.hasPrefix("4041"), hexString.count >= 20 else {
-            log("SteppIR: Ignoring non-matching or short frame.")
+            log("⚠️ SteppIR: Ignoring non-matching or short frame. Data: \(hexString)")
             return
         }
 
