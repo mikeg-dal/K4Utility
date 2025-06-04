@@ -307,10 +307,11 @@ public class ElecraftK4Device: ObservableObject {
         }
     }
 
-    /// Logs to console only if `debugEnabled == true`.
+    /// Logs to console only if `debugEnabled == true`, including a timestamp.
     private func log(_ message: String) {
         if debugEnabled {
-            print(message)
+            let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+            print("[\(timestamp)] \(message)")
         }
     }
 

@@ -19,10 +19,10 @@ struct GHRT21DashboardView: View {
     /// The beamwidth (in degrees) used to draw the wedge overlay on the azimuth map.
     private let beamwidth: Double = 66.0
 
-    /// Computes the rotor heading based on the device status and applies a 180° flip if `steppirDevice.direction == "180"`.
+    /// Computes the rotor heading based on the device status and applies a 180° flip if `steppirDevice.direction == .deg180`.
     private var computedHeading: Double {
         let raw = Double(device.status) ?? 0
-        return steppirDevice.direction == "180"
+        return steppirDevice.direction == .deg180
             ? fmod(raw + 180, 360)
             : raw
     }
@@ -78,7 +78,7 @@ struct GHRT21DashboardView: View {
                         heading: computedHeading,
                         beamwidth: beamwidth
                     )
-                    .fill(Color.green.opacity(0.55))
+                    .fill(Color.gray.opacity(0.55))
                     .animation(.easeOut(duration: 0.3), value: computedHeading)
                 }
                 .frame(width: 200, height: 200)

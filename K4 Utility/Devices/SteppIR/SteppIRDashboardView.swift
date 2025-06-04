@@ -39,7 +39,7 @@ struct SteppIRDashboardView: View {
             HStack(spacing: 8) {
                 Circle()
                     .frame(width: 12, height: 12)
-                    .foregroundColor(device.tuningStatus ? Color.red : Color.green)
+                    .foregroundColor(device.tuningStatus ? Color.red : Color.gray)
                 Text("Tuning")
                     .font(.headline)
             }
@@ -62,11 +62,11 @@ struct SteppIRDashboardView: View {
                 HStack(spacing: 12) {
                     /// Button to set direction to "Normal".
                     Button("Norm") {
-                        device.direction = "Normal"
+                        device.direction = .normal
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(device.direction == "Normal"
+                    .background(device.direction == .normal
                         ? Color(red: 66/255, green: 100/255, blue: 157/255)
                         : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
@@ -76,11 +76,11 @@ struct SteppIRDashboardView: View {
 
                     /// Button to set direction to "180".
                     Button("180") {
-                        device.direction = "180"
+                        device.direction = .deg180
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(device.direction == "180"
+                    .background(device.direction == .deg180
                         ? Color(red: 66/255, green: 100/255, blue: 157/255)
                         : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)
@@ -90,11 +90,11 @@ struct SteppIRDashboardView: View {
 
                     /// Button to set direction to "BID".
                     Button("BID") {
-                        device.direction = "BID"
+                        device.direction = .bidirectional
                     }
                     .font(.caption)
                     .padding(6)
-                    .background(device.direction == "BID"
+                    .background(device.direction == .bidirectional
                         ? Color(red: 66/255, green: 100/255, blue: 157/255)
                         : Color(red: 61/255, green: 61/255, blue: 61/255))
                     .foregroundColor(.white)

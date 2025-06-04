@@ -13,13 +13,28 @@ import SwiftUI  // for SettingsStore access
 /// Publishes frequency, direction, tuning, tracking, and connection status, and
 /// provides methods to send frequency updates, home, auto-track, and calibration commands.
 class SteppIRDevice: ObservableObject {
+    /// Supported SteppIR direction modes.
+    enum SteppIRDirection: String {
+        case normal = "Normal"
+        case deg180 = "180"
+        case bidirectional = "BID"
+    }
+    
+    /// Supported command codes for SteppIR protocol.
+    enum SteppIRCommand: UInt8 {
+        case setFrequency     = 0x31  // '1'
+        case enableTracking   = 0x52  // 'R'
+        case home             = 0x53  // 'S'
+        case disableTracking  = 0x55  // 'U'
+        case calibrate        = 0x56  // 'V'
+    }
     // MARK: – Published Properties (State)
 
     /// The current frequency in Hertz to set on the SteppIR controller.
     @Published var frequencyHz: Int = 0
 
-    /// The current direction mode ("Normal", "180", "BID", "34").
-    @Published var direction: String = "Normal"
+    /// The current direction mode.
+    @Published var direction: SteppIRDirection = .normal
 
     /// Whether auto-tracking is enabled (true) or why did  (false).
     @Published var isTrackingEnabled: Bool = false
@@ -38,12 +53,13 @@ class SteppIRDevice: ObservableObject {
 
     // MARK: – Private Helpers: Debug Logging
 
-    /// Prints a debug message when `debugEnabled` is true.
+    /// Prints a debug message with a timestamp when `debugEnabled` is true.
     ///
     /// - Parameter message: The debug message to print.
     private func log(_ message: String) {
         if debugEnabled {
-            print(message)
+            let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+            print("[\(timestamp)] \(message)")
         }
     }
 
@@ -279,42 +295,21 @@ class SteppIRDevice: ObservableObject {
         let hexString = data.map { String(format: "%02X", $0) }.joined()
         log("SteppIR: Processing frame \(hexString)")
 
-        guard hexString.hasPrefix("4041"), hexString.count >= 20 else {
+        guard let status = SteppIRStatus(from: hexString) else {
             log("⚠️ SteppIR: Ignoring non-matching or short frame. Data: \(hexString)")
             return
         }
 
         DispatchQueue.main.async {
-            // Update frequency: next 6 hex digits after "4041" -> divide by 100
-            if let freqHex = Int(hexString.dropFirst(6).prefix(6), radix: 16) {
-                self.frequencyHz = freqHex / 100
-                self.log("SteppIR: Parsed frequency = \(self.frequencyHz) Hz")
-            }
+            self.frequencyHz = status.frequencyHz
+            self.tuningStatus = status.isTuning
+            self.direction = status.direction
+            self.isTrackingEnabled = status.isTrackingEnabled
 
-            // Tuning status: byte at index 6+6..8 hex digits (two chars)
-            let tuningByte = hexString.dropFirst(12).prefix(2)
-            self.tuningStatus = (tuningByte != "00")
-            self.log("SteppIR: Tuning status = \(self.tuningStatus)")
-
-            // Direction bits: next two hex digits -> top 3 bits for direction
-            let dirBits = (Int(hexString.dropFirst(14).prefix(2), radix: 16) ?? 0) & 0xE0
-            switch dirBits >> 5 {
-            case 0: self.direction = "Normal"
-            case 2: self.direction = "180"
-            case 4: self.direction = "BID"
-            default: self.direction = "Normal"
-            }
-            self.log("SteppIR: Direction = \(self.direction)")
-        }
-
-        // Auto-tracking bit: third bit of the same direction byte
-        let trackByteHex = hexString.dropFirst(14).prefix(2)
-        if let trackByte = UInt8(trackByteHex, radix: 16) {
-            let isAuto = (trackByte & 0x04) >> 2
-            DispatchQueue.main.async {
-                self.isTrackingEnabled = (isAuto == 1)
-                self.log("SteppIR: Auto tracking is \(self.isTrackingEnabled ? "enabled" : "disabled")")
-            }
+            self.log("SteppIR: Parsed frequency = \(status.frequencyHz) Hz")
+            self.log("SteppIR: Tuning status = \(status.isTuning)")
+            self.log("SteppIR: Direction = \(status.direction.rawValue)")
+            self.log("SteppIR: Auto tracking is \(status.isTrackingEnabled ? "enabled" : "disabled")")
         }
     }
 
@@ -338,26 +333,30 @@ class SteppIRDevice: ObservableObject {
         }
         return data
     }
+
+    /// Builds a command string given frequency, direction, and command.
+    private func buildCommand(freqHz: Int, direction: SteppIRDirection, command: SteppIRCommand) -> String {
+        // Override freqHz to zero for enableTracking and disableTracking commands
+        let adjustedFreqHz = (command == .enableTracking || command == .disableTracking) ? 0 : freqHz
+        let freqHex = String(format: "%06X", adjustedFreqHz / 10)
+        let idleMotorFlagsHex = "00"
+        var packet = "404100" + freqHex + idleMotorFlagsHex
+        switch direction {
+        case .bidirectional: packet += "80"
+        case .deg180:        packet += "40"
+        case .normal:        packet += "00"
+        }
+        packet += String(format: "%02X", command.rawValue) + "000D"
+        return packet
+    }
     
     // MARK: – Private Helper: Send Frequency Update
     
     /// Formats and sends a frequency update packet to the SteppIR controller.
     /// - Parameter freqHz: Frequency in Hertz to send.
     private func sendFrequencyUpdate(_ freqHz: Int) {
-        let tenHzUnits = freqHz / 10
-        let hexFreq = String(format: "%06X", tenHzUnits & 0xFFFFFF)
-        var packet = "404100" + hexFreq + "00"
-        switch self.direction.uppercased() {
-        case "BID":
-            packet += "80"
-        case "180":
-            packet += "40"
-        default:
-            packet += "00"
-        }
-        // Append auto‐bit = 0x52 (keep tracking enabled) and terminator
-        packet += "52" + "000D"
-        if let data = self.hexStringToData(packet) {
+        let command = buildCommand(freqHz: freqHz, direction: direction, command: .setFrequency)
+        if let data = self.hexStringToData(command) {
             self.log("SteppIR: [DEBUG] Sending raw data: \(data as NSData)")
             client?.send(data)
         }
@@ -367,14 +366,7 @@ class SteppIRDevice: ObservableObject {
 
     /// Sends a "Home" command to return the antenna to the home position.
     func setHome() {
-        let hexFreq = String(format: "%06X", frequencyHz * 100)
-        var command = "404140" + hexFreq + "00"
-        switch direction.uppercased() {
-        case "BID": command += "80"
-        case "180": command += "40"
-        default: command += "00"
-        }
-        command += "53000D"
+        let command = buildCommand(freqHz: 0, direction: direction, command: .home)
         log("SteppIR: Sending HOME command \(command)")
         if let data = hexStringToData(command) {
             self.log("SteppIR: [DEBUG] Sending HOME raw data: \(data as NSData)")
@@ -391,42 +383,68 @@ class SteppIRDevice: ObservableObject {
             return
         }
 
-        let hexFreq = String(format: "%06X", frequencyHz * 100)
-        var command = "404100" + hexFreq + "00"
-        switch direction.uppercased() {
-        case "BID": command += "80"
-        case "180": command += "40"
-        default: command += "00"
-        }
-        let toggleCode = enabled ? "52" : "55"
-        command += toggleCode + "000D"
+        let cmd: SteppIRCommand = enabled ? .enableTracking : .disableTracking
+        let command = buildCommand(freqHz: 0, direction: direction, command: cmd)  // force freq to 0 here
+
         log("SteppIR: Sending AUTO command \(command)")
         if let data = hexStringToData(command) {
             self.log("SteppIR: [DEBUG] Sending AUTO raw data: \(data as NSData)")
             client?.send(data)
         }
+
         DispatchQueue.main.async {
             self.isTrackingEnabled = enabled
         }
+
         if enabled, client != nil {
-            sendFrequencyUpdate(k4Device.frequencyHz)
+            // Slight delay to allow tracking state to settle on hardware
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.sendFrequencyUpdate(self.k4Device.frequencyHz)
+            }
         }
     }
 
     /// Sends a "Calibrate" command to calibrate the SteppIR antenna.
     func setCalibrate() {
-        let hexFreq = String(format: "%06X", frequencyHz * 100)
-        var command = "404140" + hexFreq + "00"
-        switch direction.uppercased() {
-        case "BID": command += "80"
-        case "180": command += "40"
-        default: command += "00"
-        }
-        command += "56000D"
+        let command = buildCommand(freqHz: 0, direction: direction, command: .calibrate)
         log("SteppIR: Sending CALIBRATE command \(command)")
         if let data = hexStringToData(command) {
             self.log("SteppIR: [DEBUG] Sending CALIBRATE raw data: \(data as NSData)")
             client?.send(data)
         }
     }
+/// Parsed response model from SteppIR status message.
+private struct SteppIRStatus {
+    let frequencyHz: Int
+    let isTuning: Bool
+    let direction: SteppIRDevice.SteppIRDirection
+    let isTrackingEnabled: Bool
+
+    init?(from hexString: String) {
+        guard hexString.hasPrefix("4041"), hexString.count >= 22 else {
+            return nil
+        }
+
+        // Parse frequency (next 6 hex chars after "4041")
+        let freqHexStr = String(hexString.dropFirst(6).prefix(6))
+        guard let freqRaw = Int(freqHexStr, radix: 16) else { return nil }
+        frequencyHz = freqRaw / 100
+
+        // Tuning byte is the 7th byte (after 6 bytes of frequency)
+        let tuningByteStr = String(hexString.dropFirst(12).prefix(2))
+        isTuning = (tuningByteStr != "00")
+
+        // Direction byte is the next two chars
+        let dirByteStr = String(hexString.dropFirst(14).prefix(2))
+        let dirByte = UInt8(dirByteStr, radix: 16) ?? 0
+        switch (dirByte & 0xE0) >> 5 {
+        case 0b000: direction = .normal
+        case 0b010: direction = .deg180
+        case 0b001: direction = .bidirectional
+        default: direction = .normal
+        }
+
+        isTrackingEnabled = (dirByte & 0x04) != 0
+    }
+}
 }
