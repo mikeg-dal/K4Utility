@@ -99,7 +99,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1B3580512DDA3F78002E0FDE /* Build configuration list for PBXNativeTarget "K4 Utility" */;
 			buildPhases = (
-				1B6176A12DF0732C00C57A2F /* Set Build Number */,
 				1B35802B2DDA3F77002E0FDE /* Sources */,
 				1B35802C2DDA3F77002E0FDE /* Frameworks */,
 				1B35802D2DDA3F77002E0FDE /* Resources */,
@@ -231,27 +230,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		1B6176A12DF0732C00C57A2F /* Set Build Number */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Set Build Number";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "#!/bin/sh\n\n# Offset to align with TestFlight build 55\noffset=17\n\n# Use Git commit count, fallback to 0 if blocked\ncommitCount=$(/usr/bin/git -C \"$SRCROOT\" rev-list --count HEAD 2>/dev/null || echo 0)\nbuildNumber=$((commitCount + offset))\n\necho \"📦 Setting CURRENT_PROJECT_VERSION to $buildNumber\"\n\n# Tell Xcode to use this as the build number (no need to touch Info.plist)\nexport CURRENT_PROJECT_VERSION=$buildNumber\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		1B35802B2DDA3F77002E0FDE /* Sources */ = {
