@@ -29,9 +29,22 @@
 		1B3580472DDA3F78002E0FDE /* K4 UtilityUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "K4 UtilityUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1BE9B1052DF0E4E200A6FB87 /* Exceptions for "K4 Utility" folder in "K4 Utility" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			platformFiltersByRelativePath = {
+				"Launch Screen.storyboard" = (ios, );
+			};
+			target = 1B35802E2DDA3F77002E0FDE /* K4 Utility */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1B3580312DDA3F77002E0FDE /* K4 Utility */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1BE9B1052DF0E4E200A6FB87 /* Exceptions for "K4 Utility" folder in "K4 Utility" target */,
+			);
 			path = "K4 Utility";
 			sourceTree = "<group>";
 		};
