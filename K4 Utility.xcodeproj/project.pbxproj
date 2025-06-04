@@ -27,6 +27,7 @@
 		1B35802F2DDA3F77002E0FDE /* K4 Utility.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "K4 Utility.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B35803D2DDA3F78002E0FDE /* K4 UtilityTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "K4 UtilityTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B3580472DDA3F78002E0FDE /* K4 UtilityUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "K4 UtilityUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1BE9B1062DF0EC9B00A6FB87 /* K4-Utility-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "K4-Utility-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -88,6 +89,7 @@
 		1B3580262DDA3F77002E0FDE = {
 			isa = PBXGroup;
 			children = (
+				1BE9B1062DF0EC9B00A6FB87 /* K4-Utility-Info.plist */,
 				1B3580312DDA3F77002E0FDE /* K4 Utility */,
 				1B3580402DDA3F78002E0FDE /* K4 UtilityTests */,
 				1B35804A2DDA3F78002E0FDE /* K4 UtilityUITests */,
@@ -336,6 +338,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -395,6 +398,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
