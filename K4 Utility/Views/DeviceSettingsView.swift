@@ -59,7 +59,9 @@ struct DeviceSettingsView: View {
                     Label("GreenHeron", systemImage: "arrow.triangle.2.circlepath")
                 }
         }
+        #if os(macOS)
         .frame(minWidth: 350, maxWidth: 400, minHeight: 240)
+        #endif
         .padding()
     }
 }

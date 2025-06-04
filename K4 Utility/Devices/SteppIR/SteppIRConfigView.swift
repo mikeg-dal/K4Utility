@@ -63,7 +63,9 @@ struct SteppIRConfigView: View {
                 }
             }
         }
+        #if os(macOS)
         .frame(minWidth: 350, maxWidth: 400)
+        #endif
 
         // MARK: – Connection Error Handling
 
@@ -84,4 +86,3 @@ struct SteppIRConfigView: View {
         }
     }
 }
-

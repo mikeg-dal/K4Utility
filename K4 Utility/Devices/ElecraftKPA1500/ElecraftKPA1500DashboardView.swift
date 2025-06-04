@@ -18,8 +18,8 @@ struct ElecraftKPA1500DashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             // MARK: – Connection Status
 
-            /// A horizontal stack with a colored circle (green when connected, red when disconnected)
-            /// and the label "KPA1500" to indicate connection status.
+            /// A horizontal stack with a colored circle (green when connected, red when disconnected),
+            /// the label "KPA1500", a spacer, and the device's IP address.
             HStack(spacing: 8) {
                 Circle()
                     .fill(device.isConnected ? Color.green : Color.red)

@@ -19,7 +19,8 @@ struct SteppIRDashboardView: View {
     @ObservedObject var k4Device: ElecraftK4Device
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        Group {
+            VStack(alignment: .leading, spacing: 12) {
             // MARK: – Connection Status
 
             /// A horizontal stack with a colored circle (green when connected, red when disconnected)
@@ -186,12 +187,16 @@ struct SteppIRDashboardView: View {
                     }
                 }
             }
+            }
+            .padding(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white, lineWidth: 2)
+            )
         }
-        .padding(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white, lineWidth: 2)
-        )
+#if os(macOS)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+#endif
         // MARK: – Auto-sync SteppIR to K4 frequency
 
         /// Listens for frequency changes from `k4Device` and, when SteppIR auto-tracking is disabled,

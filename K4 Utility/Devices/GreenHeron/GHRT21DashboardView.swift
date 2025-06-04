@@ -39,10 +39,14 @@ struct GHRT21DashboardView: View {
                         Button(action: {
                             device.goToPreset(at: index)
                         }) {
-                            Text(device.presetNames[index])
-                                .font(.caption2)
-                                .frame(minWidth: 50)
-                                .padding(6)
+                            VStack {
+                                Text(device.presetNames[index])
+                                Text("\(device.presetAzimuths[index])°")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                            }
+                            .frame(minWidth: 50)
+                            .padding(6)
                         }
                         .buttonStyle(PlainButtonStyle())
                         .background(Color(red: 61/255, green: 61/255, blue: 61/255))

@@ -50,7 +50,7 @@ struct K4_UtilityApp: App {
 
     /// The main body of the app, defining the primary window group and settings scene.
     var body: some Scene {
-        // Main application window displaying the unified dashboard view.
+        #if os(macOS)
         WindowGroup {
             MainDashboardView(
                 steppirDevice: steppirDevice,
@@ -59,7 +59,6 @@ struct K4_UtilityApp: App {
                 rotatorDevice: rotatorDevice
             )
             .environmentObject(settingsStore)
-            // Listen for changes in scene phase to disconnect devices when in background or inactive.
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background || newPhase == .inactive {
                     steppirDevice.disconnect()
@@ -69,8 +68,6 @@ struct K4_UtilityApp: App {
                 }
             }
         }
-
-        // Settings window showing the tabbed configuration view for each device.
         Settings {
             DeviceSettingsView(
                 steppirDevice: steppirDevice,
@@ -80,5 +77,28 @@ struct K4_UtilityApp: App {
             )
             .environmentObject(settingsStore)
         }
+        #else
+        WindowGroup {
+            NavigationView {
+                MainDashboardView(
+                    steppirDevice: steppirDevice,
+                    elecraftDevice: k4dDevice,
+                    kpaDevice: kpaDevice,
+                    rotatorDevice: rotatorDevice
+                )
+                .navigationTitle("K4 Utility")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            .environmentObject(settingsStore)
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .background || newPhase == .inactive {
+                    steppirDevice.disconnect()
+                    k4dDevice.disconnect()
+                    kpaDevice.disconnect()
+                    rotatorDevice.disconnect()
+                }
+            }
+        }
+        #endif
     }
 }

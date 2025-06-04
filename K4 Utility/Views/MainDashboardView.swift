@@ -33,28 +33,30 @@ struct MainDashboardView: View {
     /// - Below SteppIR, displays KPA-1500 and K4 dashboards side by side.
     /// - Places the GHRT21 dashboard beneath on the left.
     var body: some View {
-        ZStack {
-            // Background color filling the entire screen.
-            Color(red: 37/255, green: 37/255, blue: 37/255)
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                // Background color filling the entire screen.
+                Color(red: 37/255, green: 37/255, blue: 37/255)
+                    .ignoresSafeArea()
 
-            // Top-left container for stacking device dashboards.
-            VStack(alignment: .leading, spacing: 12) {
-                // Horizontal row for amplifier and transceiver dashboards
-                HStack(alignment: .top, spacing: 12) {
-                    ElecraftK4DashboardView(device: elecraftDevice)
-                    ElecraftKPA1500DashboardView(device: kpaDevice)
-            
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Horizontal row for amplifier and transceiver dashboards
+                        HStack(alignment: .top, spacing: 12) {
+                            ElecraftK4DashboardView(device: elecraftDevice)
+                            ElecraftKPA1500DashboardView(device: kpaDevice)
+                        }
+
+                        // SteppIR dashboard with auto-sync from K4
+                        SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
+
+                        // GHRT21 rotator dashboard below
+                        GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
+                    }
+                    .padding()
+                    .frame(minWidth: geometry.size.width, alignment: .topLeading)
                 }
-
-                // SteppIR dashboard with auto-sync from K4
-                SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
-
-                // GHRT21 rotator dashboard below
-                GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
             }
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 }

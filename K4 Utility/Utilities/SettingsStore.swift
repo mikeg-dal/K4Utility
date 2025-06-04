@@ -33,8 +33,15 @@ final class SettingsStore: ObservableObject {
     init() {
         // 1. Construct the Application Support URL
         let fm = FileManager.default
+        let baseDir: FileManager.SearchPathDirectory = {
+            #if os(iOS)
+            return .documentDirectory
+            #else
+            return .applicationSupportDirectory
+            #endif
+        }()
         let appSupport = try! fm
-            .url(for: .applicationSupportDirectory,
+            .url(for: baseDir,
                  in: .userDomainMask,
                  appropriateFor: nil,
                  create: true)
