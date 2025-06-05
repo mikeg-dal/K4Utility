@@ -18,6 +18,20 @@ struct ElecraftK4ConfigView: View {
     /// Access to the shared settings store (injected via environment) for persisting device settings.
     @EnvironmentObject var settingsStore: SettingsStore
 
+    private func bindingForName(at index: Int) -> Binding<String> {
+        Binding(
+            get: { device.macroNames[index] },
+            set: { device.macroNames[index] = $0 }
+        )
+    }
+
+    private func bindingForCommand(at index: Int) -> Binding<String> {
+        Binding(
+            get: { device.macroCommands[index] },
+            set: { device.macroCommands[index] = $0 }
+        )
+    }
+
     var body: some View {
         Group {
             Form {
@@ -58,6 +72,26 @@ struct ElecraftK4ConfigView: View {
                         Circle()
                             .fill(device.isConnected ? Color.green : Color.red)
                             .frame(width: 12, height: 12)
+                    }
+                }
+
+                // MARK: – Custom Macros
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Custom Macros")
+                        .font(.headline)
+
+                    HStack(spacing: 16) {
+                        ForEach(0..<3, id: \.self) { index in
+                            VStack(spacing: 4) {
+                                TextField("Name", text: bindingForName(at: index))
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(width: 112)
+                                TextField("Macro", text: bindingForCommand(at: index))
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(width: 112)
+                            }
+                        }
                     }
                 }
             }

@@ -111,6 +111,7 @@ struct GHRT21DashboardView: View {
                 }
                 .padding(.top, 8)
             }
+            .foregroundColor(.white)
 
             // MARK: – Heading Display
 

@@ -16,6 +16,12 @@ struct DeviceSettings: Codable {
     var port: Int
 }
 
+/// Stores user-defined macro button names and corresponding command strings.
+struct MacroSettings: Codable {
+    var macroNames: [String]
+    var macroCommands: [String]
+}
+
 /// Holds configuration and preset information specifically for the GHRT21 rotator.
 /// Includes nested device connection settings and user-defined presets.
 struct GHRT21Settings: Codable {
@@ -41,10 +47,16 @@ struct AppSettings: Codable {
     /// Connection settings for the Elecraft K4 transceiver.
     var k4: DeviceSettings
 
+    /// Macro settings for the Elecraft K4 transceiver.
+    var k4Macros: MacroSettings
+
     // MARK: – Elecraft KPA-1500 Amplifier Settings
 
     /// Connection settings for the Elecraft KPA-1500 amplifier.
     var kpa1500: DeviceSettings
+
+    /// Macro settings for the Elecraft KPA-1500 amplifier.
+    var kpa1500Macros: MacroSettings
 
     // MARK: – SteppIR Antenna Controller Settings
 

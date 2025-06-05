@@ -21,6 +21,12 @@ import SwiftUI  // for SettingsStore access
 class ElecraftKPA1500Device: ObservableObject {
     // MARK: – Published Connection & Status Properties
 
+    /// User-defined button labels for macros (e.g., "ATU", "Reset", etc.)
+    @Published var macroNames: [String] = Array(repeating: "", count: 3)
+
+    /// Corresponding KPA1500 command strings (e.g., "^RS;", "^AT;", etc.)
+    @Published var macroCommands: [String] = Array(repeating: "", count: 3)
+
     /// Indicates whether the TCP connection to the amplifier is currently open.
     @Published var isConnected: Bool = false
 
@@ -137,6 +143,10 @@ class ElecraftKPA1500Device: ObservableObject {
         self.ipAddress = saved.ipAddress
         self.port = saved.port
 
+        // Load user-defined macro labels and commands
+        self.macroNames = settingsStore.settings.kpa1500Macros.macroNames
+        self.macroCommands = settingsStore.settings.kpa1500Macros.macroCommands
+
         // Persist IP address changes back into SettingsStore
         $ipAddress
             .dropFirst()
@@ -150,6 +160,22 @@ class ElecraftKPA1500Device: ObservableObject {
             .dropFirst()
             .sink { [weak self] new in
                 self?.settingsStore.settings.kpa1500.port = new
+            }
+            .store(in: &cancellables)
+
+        // Persist macroNames back into SettingsStore on change
+        $macroNames
+            .dropFirst()
+            .sink { [weak self] newNames in
+                self?.settingsStore.settings.kpa1500Macros.macroNames = newNames
+            }
+            .store(in: &cancellables)
+
+        // Persist macroCommands back into SettingsStore on change
+        $macroCommands
+            .dropFirst()
+            .sink { [weak self] newCommands in
+                self?.settingsStore.settings.kpa1500Macros.macroCommands = newCommands
             }
             .store(in: &cancellables)
     }
@@ -379,6 +405,17 @@ class ElecraftKPA1500Device: ObservableObject {
         let cmd = "^OS\(code);"
         let fullCmd = cmd + "\r"
         log("🔄 KPA1500: Sending Mode command \(cmd)")
+        if let data = fullCmd.data(using: .ascii) {
+            client?.send(data)
+        }
+    }
+
+    /// Sends a raw command string to the amplifier (macro or manual).
+    ///
+    /// - Parameter command: The full command string (e.g., "^RS;", "^AT;").
+    public func sendCommand(_ command: String) {
+        log("📤 KPA1500: Sending command: \(command)")
+        let fullCmd = command + "\r"
         if let data = fullCmd.data(using: .ascii) {
             client?.send(data)
         }

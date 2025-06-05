@@ -34,6 +34,12 @@ public class ElecraftK4Device: ObservableObject {
     /// Standing wave ratio, computed from raw SWR tenths or parsed directly.
     @Published public var swr: Double = 1.0
 
+    /// User-defined button labels for macros (e.g., "AI", "PO", etc.)
+    @Published public var macroNames: [String] = Array(repeating: "", count: 3)
+
+    /// Corresponding K4 command strings (e.g., "AI;", "PO;", etc.)
+    @Published public var macroCommands: [String] = Array(repeating: "", count: 3)
+
     /// IP Address (string) for connecting to the K4.
     /// Updating this will automatically persist into `SettingsStore` (see init).
     @Published public var ipAddress: String
@@ -81,6 +87,26 @@ public class ElecraftK4Device: ObservableObject {
         let saved = settingsStore.settings.k4
         self.ipAddress = saved.ipAddress
         self.port = saved.port
+
+        // Load user-defined macro labels and commands
+        self.macroNames = settingsStore.settings.k4Macros.macroNames
+        self.macroCommands = settingsStore.settings.k4Macros.macroCommands
+
+        // Persist macroNames back into SettingsStore on change
+        $macroNames
+            .dropFirst()
+            .sink { [weak self] newNames in
+                self?.settingsStore.settings.k4Macros.macroNames = newNames
+            }
+            .store(in: &cancellables)
+
+        // Persist macroCommands back into SettingsStore on change
+        $macroCommands
+            .dropFirst()
+            .sink { [weak self] newCommands in
+                self?.settingsStore.settings.k4Macros.macroCommands = newCommands
+            }
+            .store(in: &cancellables)
 
         // When ipAddress changes, persist back into SettingsStore
         $ipAddress
@@ -169,13 +195,13 @@ public class ElecraftK4Device: ObservableObject {
         client?.send(payload)
     }
 
-    /// Initiates the tuning process on the K4 transceiver.
+    /// Initiates the LP Tune process on the K4 transceiver.
     public func startTune() {
         // Send the command to begin tuning (TU2;)
         sendCommand("TU2;")
     }
 
-    /// Stops the tuning process on the K4 transceiver.
+    /// Stops the LP Tune  process on the K4 transceiver.
     public func stopTune() {
         // Send the command to end tuning (TU0;)
         sendCommand("TU0;")

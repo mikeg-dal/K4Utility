@@ -63,6 +63,32 @@ struct ElecraftKPA1500ConfigView: View {
                         }
                     }
                 }
+
+                // MARK: – Custom Macros
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Custom Macros")
+                        .font(.headline)
+                    HStack(spacing: 16) {
+                        ForEach(0..<3, id: \.self) { index in
+                            VStack(spacing: 4) {
+                                TextField("Name", text: Binding(
+                                    get: { device.macroNames[index] },
+                                    set: { device.macroNames[index] = $0 }
+                                ))
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .frame(width: 112)
+
+                                TextField("Macro", text: Binding(
+                                    get: { device.macroCommands[index] },
+                                    set: { device.macroCommands[index] = $0 }
+                                ))
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .frame(width: 112)
+                            }
+                        }
+                    }
+                }
             }
         }
         .frame(minWidth: 350, maxWidth: 400)
@@ -86,4 +112,3 @@ struct ElecraftKPA1500ConfigView: View {
         }
     }
 }
-

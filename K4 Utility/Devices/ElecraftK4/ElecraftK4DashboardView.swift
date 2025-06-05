@@ -26,6 +26,19 @@ struct ElecraftK4DashboardView: View {
         let hzRemainder = remainder % 1_000
         return String(format: "%d.%03d.%03d", mhz, khz, hzRemainder)
     }
+    
+    private func macroButtonLabel(for index: Int) -> String {
+        if let name = device.macroNames[safe: index], !name.isEmpty {
+            return name
+        }
+        return "M\(index + 1)"
+    }
+    
+    private func sendMacro(at index: Int) {
+        if index < device.macroCommands.count {
+            device.sendCommand(device.macroCommands[index])
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -43,7 +56,7 @@ struct ElecraftK4DashboardView: View {
 
             // MARK: – Frequency Display
 
-            /// Shows the current frequency in MHz based on `device.frequencyHz`. If no frequency 
+            /// Shows the current frequency in MHz based on `device.frequencyHz`. If no frequency
             /// is available (i.e., zero), the view displays nothing.
             HStack {
                 Text(device.isConnected
@@ -54,9 +67,8 @@ struct ElecraftK4DashboardView: View {
                     .bold()
             }
 
-            // MARK: – Placeholder Buttons
+            // MARK: – Macro Buttons
 
-            /// Two rows of two placeholder buttons labeled 1–4.
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
                     Button(action: {
@@ -79,44 +91,35 @@ struct ElecraftK4DashboardView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
 
-                    Button("Ant") {
-                        // TODO: Implement action for button 2
+                    ForEach(0..<1) { index in
+                        Button(action: { sendMacro(at: index) }) {
+                            Text(macroButtonLabel(for: index))
+                                .frame(minWidth: 30)
+                                .font(.caption2)
+                                .padding(6)
+                                .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                                .foregroundColor(.white)
+                                .cornerRadius(1)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .frame(minWidth: 30)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                    .foregroundColor(.white)
-                    .cornerRadius(1)
                 }
 
                 HStack(spacing: 8) {
-                    Button("3") {
-                        // TODO: Implement action for button 3
+                    ForEach(1..<3) { index in
+                        Button(action: { sendMacro(at: index) }) {
+                            Text(macroButtonLabel(for: index))
+                                .frame(minWidth: 30)
+                                .font(.caption2)
+                                .padding(6)
+                                .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                                .foregroundColor(.white)
+                                .cornerRadius(1)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .frame(minWidth: 30)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                    .foregroundColor(.white)
-                    .cornerRadius(1)
-
-                    Button("4") {
-                        // TODO: Implement action for button 4
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .frame(minWidth: 30)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                    .foregroundColor(.white)
-                    .cornerRadius(1)
                 }
             }
-            .padding(8)
-            .background(Color.clear)
 
             // MARK: – Power Metrics
 
@@ -141,10 +144,20 @@ struct ElecraftK4DashboardView: View {
             Text(String(format: "%.0f W", device.forwardPower))
                 .font(.caption)
         }
+        
+        .foregroundColor(.white)
         .padding(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.white, lineWidth: 2)
         )
+    }
+}
+
+// MARK: – Safe Array Access
+
+extension Collection {
+    subscript(safe index: Index) -> Element? {
+        return indices.contains(index) ? self[index] : nil
     }
 }

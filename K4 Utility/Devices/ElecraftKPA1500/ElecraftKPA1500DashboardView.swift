@@ -48,8 +48,8 @@ struct ElecraftKPA1500DashboardView: View {
 
             /// A collection of buttons to toggle operate/standby and other amplifier functions.
             VStack(spacing: 8) {
+                // First row: Operate and M1
                 HStack(spacing: 8) {
-                    /// Button to switch between Operate and Standby modes.
                     Button("Operate") {
                         let shouldOperate = device.operateMode != "Operate"
                         device.setOperateMode(shouldOperate)
@@ -64,46 +64,33 @@ struct ElecraftKPA1500DashboardView: View {
                     .foregroundColor(.white)
                     .cornerRadius(1)
 
-                    /// Placeholder button for selecting the antenna.
-                    Button("Antenna") {
-                        // TODO: Implement action
+                    Button(action: { sendMacro(at: 0) }) {
+                        Text(macroButtonLabel(for: 0))
+                            .frame(minWidth: 30)
+                            .font(.caption2)
+                            .padding(6)
+                            .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                            .foregroundColor(.white)
+                            .cornerRadius(1)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .frame(minWidth: 30)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                    .foregroundColor(.white)
-                    .cornerRadius(1)
                 }
-                .padding(3)
 
+                // Second row: M2 and M3
                 HStack(spacing: 8) {
-                    /// Placeholder button to engage/disengage the internal tuner (ATU).
-                    Button("ATU") {
-                        // TODO: Implement action
+                    ForEach(1..<3) { index in
+                        Button(action: { sendMacro(at: index) }) {
+                            Text(macroButtonLabel(for: index))
+                                .frame(minWidth: 30)
+                                .font(.caption2)
+                                .padding(6)
+                                .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                                .foregroundColor(.white)
+                                .cornerRadius(1)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .frame(minWidth: 30)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                    .foregroundColor(.white)
-                    .cornerRadius(1)
-
-                    /// Placeholder button to reset amplifier status.
-                    Button("Reset") {
-                        // TODO: Implement action
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .frame(minWidth: 30)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                    .foregroundColor(.white)
-                    .cornerRadius(1)
                 }
-                .padding(3)
             }
             .padding(8)
 
@@ -133,10 +120,24 @@ struct ElecraftKPA1500DashboardView: View {
             Text(String(format: "%.0f W", device.forwardPower))
                 .font(.caption)
         }
+        .foregroundColor(.white)
         .padding(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.white, lineWidth: 2)
         )
+    }
+
+    private func macroButtonLabel(for index: Int) -> String {
+        if let name = device.macroNames[safe: index], !name.isEmpty {
+            return name
+        }
+        return "M\(index + 1)"
+    }
+
+    private func sendMacro(at index: Int) {
+        if index < device.macroCommands.count {
+            device.sendCommand(device.macroCommands[index])
+        }
     }
 }

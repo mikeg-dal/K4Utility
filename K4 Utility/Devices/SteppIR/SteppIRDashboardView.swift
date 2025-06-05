@@ -188,6 +188,7 @@ struct SteppIRDashboardView: View {
                 }
             }
             }
+            .foregroundColor(.white)
             .padding(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)

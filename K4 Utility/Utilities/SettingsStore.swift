@@ -60,7 +60,15 @@ final class SettingsStore: ObservableObject {
             // Provide default settings when no file exists or decoding fails
             settings = AppSettings(
                 k4: DeviceSettings(ipAddress: "192.168.1.10", port: 9200),
+                k4Macros: MacroSettings(
+                    macroNames: Array(repeating: "", count: 3),
+                    macroCommands: Array(repeating: "", count: 3)
+                ),
                 kpa1500: DeviceSettings(ipAddress: "192.168.1.11", port: 9201),
+                kpa1500Macros: MacroSettings(
+                    macroNames: Array(repeating: "", count: 3),
+                    macroCommands: Array(repeating: "", count: 3)
+                ),
                 steppIR: DeviceSettings(ipAddress: "192.168.1.18", port: 10001),
                 ghrt21: GHRT21Settings(
                     device: DeviceSettings(ipAddress: "192.168.1.12", port: 4532),

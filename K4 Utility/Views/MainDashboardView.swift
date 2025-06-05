@@ -25,6 +25,8 @@ struct MainDashboardView: View {
     /// The GreenHeron RT-21 rotator device, passed to its dashboard view.
     @ObservedObject var rotatorDevice: GHRT21Device
 
+    @State private var isShowingSettings: Bool = false
+
     // MARK: – View Body
 
     /// The view’s content and layout:
@@ -35,9 +37,13 @@ struct MainDashboardView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background color filling the entire screen.
+                #if os(macOS)
                 Color(red: 37/255, green: 37/255, blue: 37/255)
                     .ignoresSafeArea()
+                #else
+                Color(red: 37/255, green: 37/255, blue: 37/255)
+                    .ignoresSafeArea(.all, edges: [.top, .bottom])
+                #endif
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
@@ -55,6 +61,30 @@ struct MainDashboardView: View {
                     }
                     .padding()
                     .frame(minWidth: geometry.size.width, alignment: .topLeading)
+                    .frame(maxHeight: .infinity, alignment: .top)
+#if os(iOS)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button {
+                                isShowingSettings.toggle()
+                            } label: {
+                                Image(systemName: "gear")
+                            }
+                        }
+                    }
+                    .sheet(isPresented: $isShowingSettings) {
+                        ZStack {
+                            Color(red: 37/255, green: 37/255, blue: 37/255)
+                                .ignoresSafeArea(.container, edges: [.top, .bottom])
+                            DeviceSettingsView(
+                                steppirDevice: steppirDevice,
+                                elecraftDevice: elecraftDevice,
+                                kpaDevice: kpaDevice,
+                                rotatorDevice: rotatorDevice
+                            )
+                        }
+                    }
+#endif
                 }
             }
         }

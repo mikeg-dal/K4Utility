@@ -79,7 +79,7 @@ struct K4_UtilityApp: App {
         }
         #else
         WindowGroup {
-            NavigationView {
+            NavigationStack {
                 MainDashboardView(
                     steppirDevice: steppirDevice,
                     elecraftDevice: k4dDevice,
