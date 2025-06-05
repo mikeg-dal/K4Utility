@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
 	<key>UILaunchStoryboardName</key>
-	<string></string>
+	<string>LaunchScreen</string>
 </dict>
 </plist>
