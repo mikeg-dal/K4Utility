@@ -41,6 +41,8 @@ struct GHRT21DashboardView: View {
                         }) {
                             VStack {
                                 Text(device.presetNames[index])
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
                                 Text("\(device.presetAzimuths[index])°")
                                     .font(.caption2)
                                     .foregroundColor(.gray)

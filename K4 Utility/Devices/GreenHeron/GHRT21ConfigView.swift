@@ -71,13 +71,20 @@ struct GHRT21ConfigView: View {
                         HStack(spacing: 16) {
                             ForEach(0..<4) { i in
                                 VStack(spacing: 4) {
-                                    /// Text field for the preset name at index `i` with azimuth shown in label.
-                                    TextField("\(device.presetNames[i]) (\(device.presetAzimuths[i])°)", text: Binding(
+                                    /// Fields for editing both preset name and azimuth.
+                                    TextField("", text: Binding(
                                         get: { device.presetNames[i] },
                                         set: { device.presetNames[i] = $0 }
                                     ))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .frame(width: 75)
+                                    .frame(width: 90)
+
+                                    TextField("", value: Binding(
+                                        get: { device.presetAzimuths[i] },
+                                        set: { device.presetAzimuths[i] = $0 }
+                                    ), formatter: NumberFormatter())
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(width: 90)
                                 }
                             }
                         }
@@ -85,13 +92,20 @@ struct GHRT21ConfigView: View {
                         HStack(spacing: 16) {
                             ForEach(4..<8) { i in
                                 VStack(spacing: 4) {
-                                    /// Text field for the preset name at index `i` with azimuth shown in label.
-                                    TextField("\(device.presetNames[i]) (\(device.presetAzimuths[i])°)", text: Binding(
+                                    /// Fields for editing both preset name and azimuth.
+                                    TextField("", text: Binding(
                                         get: { device.presetNames[i] },
                                         set: { device.presetNames[i] = $0 }
                                     ))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .frame(width: 75)
+                                    .frame(width: 90)
+
+                                    TextField("", value: Binding(
+                                        get: { device.presetAzimuths[i] },
+                                        set: { device.presetAzimuths[i] = $0 }
+                                    ), formatter: NumberFormatter())
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(width: 90)
                                 }
                             }
                         }
