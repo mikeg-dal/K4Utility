@@ -26,6 +26,8 @@ struct MainDashboardView: View {
     @ObservedObject var rotatorDevice: GHRT21Device
 
     @State private var isShowingSettings: Bool = false
+    
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // MARK: – View Body
 
@@ -46,47 +48,87 @@ struct MainDashboardView: View {
                 #endif
 
                 ScrollView {
+                    #if os(iOS)
+                    if horizontalSizeClass == .compact {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                            ElecraftK4DashboardView(device: elecraftDevice)
+                            ElecraftKPA1500DashboardView(device: kpaDevice)
+                            SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
+                            GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
+                        }
+                        .padding()
+                        .frame(minWidth: geometry.size.width, alignment: .topLeading)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                    } else {
+                        if geometry.size.width > geometry.size.height {
+                            // Landscape mode: single horizontal row
+                            HStack(alignment: .top, spacing: 12) {
+                                ElecraftK4DashboardView(device: elecraftDevice)
+                                ElecraftKPA1500DashboardView(device: kpaDevice)
+                                SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
+                                GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
+                            }
+                            .padding()
+                            .frame(minWidth: geometry.size.width, alignment: .topLeading)
+                            .frame(maxHeight: .infinity, alignment: .top)
+                        } else {
+                            // Portrait mode: two centered rows
+                            VStack(spacing: 40) {
+                                HStack(spacing: 12) {
+                                    ElecraftK4DashboardView(device: elecraftDevice)
+                                    ElecraftKPA1500DashboardView(device: kpaDevice)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .center)
+
+                                HStack(spacing: 12) {
+                                    SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
+                                    GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            }
+                            .padding()
+                            .frame(minWidth: geometry.size.width, alignment: .top)
+                            .frame(maxHeight: .infinity, alignment: .top)
+                        }
+                    }
+                    #else
                     VStack(alignment: .leading, spacing: 12) {
-                        // Horizontal row for amplifier and transceiver dashboards
                         HStack(alignment: .top, spacing: 12) {
                             ElecraftK4DashboardView(device: elecraftDevice)
                             ElecraftKPA1500DashboardView(device: kpaDevice)
                         }
-
-                        // SteppIR dashboard with auto-sync from K4
                         SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
-
-                        // GHRT21 rotator dashboard below
                         GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
                     }
                     .padding()
                     .frame(minWidth: geometry.size.width, alignment: .topLeading)
                     .frame(maxHeight: .infinity, alignment: .top)
-#if os(iOS)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button {
-                                isShowingSettings.toggle()
-                            } label: {
-                                Image(systemName: "gear")
-                            }
-                        }
-                    }
-                    .sheet(isPresented: $isShowingSettings) {
-                        ZStack {
-                            Color(red: 37/255, green: 37/255, blue: 37/255)
-                                .ignoresSafeArea(.container, edges: [.top, .bottom])
-                            DeviceSettingsView(
-                                steppirDevice: steppirDevice,
-                                elecraftDevice: elecraftDevice,
-                                kpaDevice: kpaDevice,
-                                rotatorDevice: rotatorDevice
-                            )
-                        }
-                    }
-#endif
+                    #endif
                 }
             }
+            #if os(iOS)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        isShowingSettings.toggle()
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+                }
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                ZStack {
+                    Color(red: 37/255, green: 37/255, blue: 37/255)
+                        .ignoresSafeArea(.container, edges: [.top, .bottom])
+                    DeviceSettingsView(
+                        steppirDevice: steppirDevice,
+                        elecraftDevice: elecraftDevice,
+                        kpaDevice: kpaDevice,
+                        rotatorDevice: rotatorDevice
+                    )
+                }
+            }
+            #endif
         }
     }
 }

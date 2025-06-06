@@ -18,8 +18,32 @@ struct SteppIRDashboardView: View {
     /// The observed ElecraftK4Device used for auto-syncing frequency when SteppIR is not in tracking mode.
     @ObservedObject var k4Device: ElecraftK4Device
 
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+
+
     var body: some View {
-        Group {
+        // Modularized: Let parent (e.g., MainDashboardView) control all sizing/positioning.
+        innerDashboard
+#if os(macOS)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+#endif
+        // MARK: – Auto-sync SteppIR to K4 frequency
+        /// Listens for frequency changes from `k4Device` and, when SteppIR auto-tracking is disabled,
+        /// updates the SteppIR frequency (rounded to the nearest 10 kHz).
+        .onReceive(
+            k4Device.$frequencyHz
+                .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
+        ) { newHz in
+            guard device.isTrackingEnabled else { return }
+            let rawKHz = newHz / 1000
+            let truncatedKHz = (rawKHz / 10) * 10
+            device.frequencyHz = truncatedKHz
+        }
+    }
+
+    private var innerDashboard: some View {
+        ZStack {
+            Color(red: 37/255, green: 37/255, blue: 37/255)
             VStack(alignment: .leading, spacing: 12) {
             // MARK: – Connection Status
 
@@ -146,70 +170,56 @@ struct SteppIRDashboardView: View {
                 }
             }
 
-            // MARK: – Band Preset Buttons
+                // MARK: – Band Preset Buttons
 
-            /// Renders two rows of buttons labeled with meter bands. When tapped, sets the frequency and retains direction.
-            VStack(spacing: 8) {
-                HStack(spacing: 12) {
-                    ForEach([(80, 3650), (60, 5125), (40, 7150), (30, 10125), (20, 14200)], id: \.0) { band in
-                        let isActive = abs(device.frequencyHz - band.1) <= 200
-                        Button("\(band.0)m") {
-                            device.frequencyHz = band.1
+                /// Renders two rows of buttons labeled with meter bands. When tapped, sets the frequency and retains direction.
+                VStack(spacing: 8) {
+                    HStack(spacing: 12) {
+                        ForEach([(80, 3650), (60, 5125), (40, 7150), (30, 10125), (20, 14200)], id: \.0) { band in
+                            let isActive = abs(device.frequencyHz - band.1) <= 200
+                            Button("\(band.0)m") {
+                                device.frequencyHz = band.1
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .frame(minWidth: 30)
+                            .font(.caption2)
+                            .padding(3)
+                            .background(isActive
+                                ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                                : Color(red: 61/255, green: 61/255, blue: 61/255))
+                            .foregroundColor(.white)
+                            .cornerRadius(2)
+                            .scaleEffect(1.10)
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        .frame(minWidth: 30)
-                        .font(.caption2)
-                        .padding(3)
-                        .background(isActive
-                            ? Color(red: 66/255, green: 100/255, blue: 157/255)
-                            : Color(red: 61/255, green: 61/255, blue: 61/255))
-                        .foregroundColor(.white)
-                        .cornerRadius(2)
-                        .scaleEffect(1.10)
+                    }
+                    HStack(spacing: 12) {
+                        ForEach([(17, 18125), (15, 21200), (12, 24915), (10, 28300), (6, 50300)], id: \.0) { band in
+                            let isActive = abs(device.frequencyHz - band.1) <= 200
+                            Button("\(band.0)m") {
+                                device.frequencyHz = band.1
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .frame(minWidth: 30)
+                            .font(.caption2)
+                            .padding(3)
+                            .background(isActive
+                                ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                                : Color(red: 61/255, green: 61/255, blue: 61/255))
+                            .foregroundColor(.white)
+                            .cornerRadius(2)
+                            .scaleEffect(1.10)
+                        }
                     }
                 }
-                HStack(spacing: 12) {
-                    ForEach([(17, 18125), (15, 21200), (12, 24915), (10, 28300), (6, 50300)], id: \.0) { band in
-                        let isActive = abs(device.frequencyHz - band.1) <= 200
-                        Button("\(band.0)m") {
-                            device.frequencyHz = band.1
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .frame(minWidth: 30)
-                        .font(.caption2)
-                        .padding(3)
-                        .background(isActive
-                            ? Color(red: 66/255, green: 100/255, blue: 157/255)
-                            : Color(red: 61/255, green: 61/255, blue: 61/255))
-                        .foregroundColor(.white)
-                        .cornerRadius(2)
-                        .scaleEffect(1.10)
-                    }
                 }
             }
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .foregroundColor(.white)
             .padding(8)
-            .overlay(
+            .background(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.white, lineWidth: 2)
             )
         }
-#if os(macOS)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-#endif
-        // MARK: – Auto-sync SteppIR to K4 frequency
-
-        /// Listens for frequency changes from `k4Device` and, when SteppIR auto-tracking is disabled,
-        /// updates the SteppIR frequency (rounded to the nearest 10 kHz).
-        .onReceive(
-            k4Device.$frequencyHz
-                .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
-        ) { newHz in
-            guard device.isTrackingEnabled else { return }
-            let rawKHz = newHz / 1000
-            let truncatedKHz = (rawKHz / 10) * 10
-            device.frequencyHz = truncatedKHz
-        }
     }
-}
+

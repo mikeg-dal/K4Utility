@@ -7,6 +7,23 @@
 
 import SwiftUI
 
+struct DeviceHeader: View {
+    var title: String
+    var isConnected: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(isConnected ? Color.green : Color.red)
+                .frame(width: 12, height: 12)
+            Text(title)
+                .font(.headline)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 0)
+    }
+}
+
 /// A SwiftUI view that displays the dashboard for the Elecraft K4 transceiver,
 /// showing connection status, current frequency, power metrics, and meters.
 struct ElecraftK4DashboardView: View {
@@ -41,116 +58,110 @@ struct ElecraftK4DashboardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // MARK: – Connection Status Indicator
+        ZStack {
+            Color(red: 37/255, green: 37/255, blue: 37/255)
+            ZStack {
+                Color(red: 37/255, green: 37/255, blue: 37/255)
+                HStack {
+                    Spacer()
+                    VStack(alignment: .center, spacing: 8) {
+                        // MARK: – Connection Status Indicator
+                        DeviceHeader(title: "K4D", isConnected: device.isConnected)
 
-            /// A small circle that is green when the device is connected and red when disconnected,
-            /// accompanied by the label "K4D".
-            HStack {
-                Circle()
-                    .fill(device.isConnected ? Color.green : Color.red)
-                    .frame(width: 12, height: 12)
-                Text("K4D")
-                    .font(.headline)
-            }
-
-            // MARK: – Frequency Display
-
-            /// Shows the current frequency in MHz based on `device.frequencyHz`. If no frequency
-            /// is available (i.e., zero), the view displays nothing.
-            HStack {
-                Text(device.isConnected
-                     ? (device.frequencyHz > 0
-                        ? "\(formatFrequency(device.frequencyHz)) MHz"
-                        : "")
-                     : "–")
-                    .bold()
-            }
-
-            // MARK: – Macro Buttons
-
-            VStack(spacing: 8) {
-                HStack(spacing: 8) {
-                    Button(action: {
-                        if isTuning {
-                            device.stopTune()
-                        } else {
-                            device.startTune()
+                        // MARK: – Frequency Display
+                        HStack {
+                            Text(device.isConnected
+                                 ? (device.frequencyHz > 0
+                                    ? "\(formatFrequency(device.frequencyHz)) MHz"
+                                    : "")
+                                 : "–")
+                                .bold()
                         }
-                        isTuning.toggle()
-                    }) {
-                        Text("Tune")
-                            .frame(minWidth: 30)
-                            .font(.caption2)
-                            .padding(6)
-                            .background(isTuning
-                                        ? Color(red: 66/255, green: 100/255, blue: 157/255)
-                                        : Color(red: 61/255, green: 61/255, blue: 61/255))
-                            .foregroundColor(.white)
+
+                        // MARK: – Macro Buttons
+                        VStack(spacing: 8) {
+                            HStack(spacing: 8) {
+                                Button(action: {
+                                    if isTuning {
+                                        device.stopTune()
+                                    } else {
+                                        device.startTune()
+                                    }
+                                    isTuning.toggle()
+                                }) {
+                                    Text("Tune")
+                                        .frame(minWidth: 30)
+                                        .font(.caption2)
+                                        .padding(6)
+                                        .background(isTuning
+                                                    ? Color(red: 66/255, green: 100/255, blue: 157/255)
+                                                    : Color(red: 61/255, green: 61/255, blue: 61/255))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(1)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+
+                                ForEach(0..<1) { index in
+                                    Button(action: { sendMacro(at: index) }) {
+                                        Text(macroButtonLabel(for: index))
+                                            .frame(minWidth: 30)
+                                            .font(.caption2)
+                                            .padding(6)
+                                            .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                                            .foregroundColor(.white)
+                                            .cornerRadius(1)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+
+                            HStack(spacing: 8) {
+                                ForEach(1..<3) { index in
+                                    Button(action: { sendMacro(at: index) }) {
+                                        Text(macroButtonLabel(for: index))
+                                            .frame(minWidth: 30)
+                                            .font(.caption2)
+                                            .padding(6)
+                                            .background(Color(red: 61/255, green: 61/255, blue: 61/255))
+                                            .foregroundColor(.white)
+                                            .cornerRadius(1)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+
+                        // MARK: – Power Metrics
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(String(format: "Fwd: %.0f W   Ref: %.0f W", device.forwardPower, device.reflectedPower))
+                                .font(.caption)
+                            Text(String(format: "SWR: %.1f", device.swr))
+                                .font(.caption)
+                        }
+
+                        // MARK: – Forward Power Meter
+                        GradientMeterView(value: device.forwardPower,
+                                          minValue: 0,
+                                          maxValue: 100)
+                            .frame(width: 90, height: 16)
+                            .animation(.easeOut(duration: 0.5), value: device.forwardPower)
                             .cornerRadius(1)
-                    }
-                    .buttonStyle(PlainButtonStyle())
 
-                    ForEach(0..<1) { index in
-                        Button(action: { sendMacro(at: index) }) {
-                            Text(macroButtonLabel(for: index))
-                                .frame(minWidth: 30)
-                                .font(.caption2)
-                                .padding(6)
-                                .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                                .foregroundColor(.white)
-                                .cornerRadius(1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
+                        // MARK: – Meter Value Label
+                        Text(String(format: "%.0f W", device.forwardPower))
+                            .font(.caption)
                     }
+                    Spacer()
                 }
-
-                HStack(spacing: 8) {
-                    ForEach(1..<3) { index in
-                        Button(action: { sendMacro(at: index) }) {
-                            Text(macroButtonLabel(for: index))
-                                .frame(minWidth: 30)
-                                .font(.caption2)
-                                .padding(6)
-                                .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                                .foregroundColor(.white)
-                                .cornerRadius(1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                }
+                .foregroundColor(.white)
+                .padding(8)
             }
-
-            // MARK: – Power Metrics
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: "Fwd: %.0f W   Ref: %.0f W", device.forwardPower, device.reflectedPower))
-                    .font(.caption)
-                Text(String(format: "SWR: %.1f", device.swr))
-                    .font(.caption)
-            }
-
-            // MARK: – Forward Power Meter
-
-            GradientMeterView(value: device.forwardPower,
-                              minValue: 0,
-                              maxValue: 100)
-                .frame(width: 90, height: 16)
-                .animation(.easeOut(duration: 0.5), value: device.forwardPower)
-                .cornerRadius(1)
-
-            // MARK: – Meter Value Label
-
-            Text(String(format: "%.0f W", device.forwardPower))
-                .font(.caption)
         }
-        
-        .foregroundColor(.white)
-        .padding(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.white, lineWidth: 2)
         )
+        .scrollDismissesKeyboard(.interactively)
     }
 }
 

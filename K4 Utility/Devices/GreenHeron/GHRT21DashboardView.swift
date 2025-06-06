@@ -61,23 +61,28 @@ struct GHRT21DashboardView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: 12) {
-                // MARK: – Connection Status
+        VStack(alignment: .leading, spacing: 12) {
+            // MARK: – Connection Status
 
-                /// A horizontal stack with a colored circle (green when connected, red when disconnected)
-                /// and the label "GH-RT21" to indicate connection status.
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(device.isConnected ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
-                    Text("GH-RT21")
-                        .font(.headline)
-                }
+            /// A horizontal stack with a colored circle (green when connected, red when disconnected)
+            /// and the label "GH-RT21" to indicate connection status.
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(device.isConnected ? Color.green : Color.red)
+                    .frame(width: 12, height: 12)
+                Text("GH-RT21")
+                    .font(.headline)
+            }
 
-                // MARK: – Heading Visualization
+            // Heading display moved here
+            Text("\(Int(computedHeading))°")
+                .font(.caption2)
+                .padding(.top, 4)
 
-                /// Displays an AzimuthMapView overlaid with a BeamWedgeShape indicating the current heading.
+            // MARK: – Heading Visualization
+
+            /// Displays an AzimuthMapView overlaid with a BeamWedgeShape indicating the current heading.
+            HStack {
                 ZStack {
                     AzimuthMapView()
                     BeamWedgeShape(
@@ -88,44 +93,38 @@ struct GHRT21DashboardView: View {
                     .animation(.easeOut(duration: 0.3), value: computedHeading)
                 }
                 .frame(width: 200, height: 200)
-
-                // MARK: – Preset Buttons
-
-                /// The grid of preset buttons allowing the user to send the rotator to stored headings.
-                presetGrid
-
-                // MARK: – Step Controls
-
-                /// A step control button that sends `stopMotion()` to the device when tapped.
-                HStack(spacing: 8) {
-                    Button("■") {
-                        device.stopMotion()
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .frame(minWidth: 40)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(Color.red)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-                }
-                .padding(.top, 8)
             }
-            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
 
-            // MARK: – Heading Display
+            // MARK: – Preset Buttons
 
-            /// Displays the numeric heading in degrees in a small overlay box.
-            Text("\(Int(computedHeading))°")
+            /// The grid of preset buttons allowing the user to send the rotator to stored headings.
+            HStack {
+                Spacer()
+                presetGrid
+                Spacer()
+            }
+
+            // MARK: – Step Controls
+
+            /// A step control button that sends `stopMotion()` to the device when tapped.
+            HStack(spacing: 8) {
+                Button("■") {
+                    device.stopMotion()
+                }
+                .buttonStyle(PlainButtonStyle())
+                .frame(minWidth: 40)
                 .font(.caption2)
                 .padding(6)
-                .background(Color.black.opacity(0.9))
+                .background(Color.red)
                 .foregroundColor(.white)
-                .cornerRadius(4)
-                .padding(8)
-                .frame(width: 60)
+                .cornerRadius(8)
+            }
+            .padding(.top, 8)
         }
+        .foregroundColor(.white)
         .padding(8)
+        .background(Color(red: 37/255, green: 37/255, blue: 37/255))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.white, lineWidth: 2)

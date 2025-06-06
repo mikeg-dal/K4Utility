@@ -20,7 +20,10 @@ struct GHRT21ConfigView: View {
     @EnvironmentObject var settingsStore: SettingsStore
 
     var body: some View {
-        Group {
+        ZStack {
+            Color(red: 37/255, green: 37/255, blue: 37/255)
+                .ignoresSafeArea()
+
             Form {
                 // MARK: – Debug Toggle
 
@@ -64,22 +67,23 @@ struct GHRT21ConfigView: View {
 
                 // MARK: – Presets Grid (4 per row)
 
-                /// A section containing a grid of text fields for editing preset names and azimuths (two rows of four).
-                Section {
+                /// A VStack containing the "Presets" header and a grid of text fields for editing preset names and azimuths (two rows of four).
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Presets")
+                        .font(.headline)
+
                     VStack(spacing: 16) {
-                        // Row 1: presets 1–4
                         HStack(spacing: 16) {
                             ForEach(0..<4) { i in
                                 VStack(spacing: 4) {
-                                    /// Fields for editing both preset name and azimuth.
-                                    TextField("", text: Binding(
+                                    TextField("Name", text: Binding(
                                         get: { device.presetNames[i] },
                                         set: { device.presetNames[i] = $0 }
                                     ))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .frame(width: 90)
 
-                                    TextField("", value: Binding(
+                                    TextField("Az", value: Binding(
                                         get: { device.presetAzimuths[i] },
                                         set: { device.presetAzimuths[i] = $0 }
                                     ), formatter: NumberFormatter())
@@ -88,19 +92,18 @@ struct GHRT21ConfigView: View {
                                 }
                             }
                         }
-                        // Row 2: presets 5–8
+
                         HStack(spacing: 16) {
                             ForEach(4..<8) { i in
                                 VStack(spacing: 4) {
-                                    /// Fields for editing both preset name and azimuth.
-                                    TextField("", text: Binding(
+                                    TextField("Name", text: Binding(
                                         get: { device.presetNames[i] },
                                         set: { device.presetNames[i] = $0 }
                                     ))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .frame(width: 90)
 
-                                    TextField("", value: Binding(
+                                    TextField("Az", value: Binding(
                                         get: { device.presetAzimuths[i] },
                                         set: { device.presetAzimuths[i] = $0 }
                                     ), formatter: NumberFormatter())
@@ -112,8 +115,9 @@ struct GHRT21ConfigView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .navigationTitle("Rotator Config")
         }
-        .frame(minWidth: 350, maxWidth: 400)
 
         // MARK: – Connection Error Handling
 

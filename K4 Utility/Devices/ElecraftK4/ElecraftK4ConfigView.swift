@@ -33,33 +33,27 @@ struct ElecraftK4ConfigView: View {
     }
 
     var body: some View {
-        Group {
+        ZStack {
+            Color(red: 37/255, green: 37/255, blue: 37/255)
+                .ignoresSafeArea()
+
             Form {
                 // MARK: – Debug Toggle
-
-                /// A toggle switch that enables or disables debug logging for the device.
                 Toggle("Debug", isOn: $device.debugEnabled)
                     .padding(.bottom, 8)
 
                 // MARK: – Connection Settings
-
-                /// A section containing text fields for IP address and port,
-                /// as well as a connect/disconnect button and a connection status indicator.
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 16) {
-                        /// Text field for editing the device’s IP address, bound to `device.ipAddress`.
                         TextField("IP Address", text: $device.ipAddress)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .frame(width: 200)
 
-                        /// Text field for editing the device’s port, bound to `device.port`.
                         TextField("Port", value: $device.port, formatter: NumberFormatter())
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .frame(width: 100)
                     }
                     HStack {
-                        /// A button that toggles between "Connect" and "Disconnect" based on `device.isConnected`.
-                        /// Tapping will call `device.connect()` or `device.disconnect()`.
                         Button(device.isConnected ? "Disconnect" : "Connect") {
                             if device.isConnected {
                                 device.disconnect()
@@ -68,7 +62,6 @@ struct ElecraftK4ConfigView: View {
                             }
                         }
 
-                        /// A small circle that is green when connected and red when disconnected.
                         Circle()
                             .fill(device.isConnected ? Color.green : Color.red)
                             .frame(width: 12, height: 12)
@@ -76,7 +69,6 @@ struct ElecraftK4ConfigView: View {
                 }
 
                 // MARK: – Custom Macros
-
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Custom Macros")
                         .font(.headline)
@@ -95,21 +87,17 @@ struct ElecraftK4ConfigView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .navigationTitle("K4 Config")
         }
-        .frame(minWidth: 350, maxWidth: 400)
-        // MARK: – Connection Error Handling
-
-        /// Listen for changes to `device.connectionError`. If non-nil, trigger an alert.
         .onReceive(device.$connectionError) { error in
             showErrorAlert = (error != nil)
         }
-        /// Presents an alert if a connection error occurs, displaying the error message.
         .alert(isPresented: $showErrorAlert) {
             Alert(
                 title: Text("Connection Error"),
                 message: Text(device.connectionError ?? "Unknown error"),
                 dismissButton: .default(Text("OK")) {
-                    // Clear the error so the alert does not reappear.
                     device.connectionError = nil
                 }
             )

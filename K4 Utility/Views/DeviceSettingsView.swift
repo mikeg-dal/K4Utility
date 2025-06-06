@@ -39,29 +39,29 @@ struct DeviceSettingsView: View {
                 // SteppIR tab
                 SteppIRConfigView(device: steppirDevice)
                     .tabItem {
-                        Label("SteppIR", systemImage: "antenna.radiowaves.left.and.right")
+                        Label("SteppIR Config", systemImage: "antenna.radiowaves.left.and.right")
                     }
                 
                 // K4D tab
                 ElecraftK4ConfigView(device: elecraftDevice)
                     .tabItem {
-                        Label("K4D", systemImage: "radio")
+                        Label("K4 Config", systemImage: "radio")
                     }
                 
                 // KPA-1500 tab
-                VStack(alignment: .leading) {
-                    ElecraftKPA1500ConfigView(device: kpaDevice)
-                }
-                .tabItem {
-                    Label("KPA1500", systemImage: "bolt.fill")
-                }
+                ElecraftKPA1500ConfigView(device: kpaDevice)
+                    .tabItem {
+                        Label("KPA Config", systemImage: "bolt.fill")
+                    }
                 
                 // GreenHeron rotator tab
                 GHRT21ConfigView(device: rotatorDevice)
                     .tabItem {
-                        Label("GreenHeron", systemImage: "arrow.triangle.2.circlepath")
+                        Label("Rotator Config", systemImage: "arrow.triangle.2.circlepath")
                     }
             }
+            .scrollDismissesKeyboard(.immediately)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
 #if os(macOS)
             .frame(minWidth: 350, maxWidth: 400, minHeight: 240)

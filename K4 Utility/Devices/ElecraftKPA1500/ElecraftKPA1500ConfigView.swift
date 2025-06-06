@@ -20,7 +20,9 @@ struct ElecraftKPA1500ConfigView: View {
     @EnvironmentObject var settingsStore: SettingsStore
 
     var body: some View {
-        Group {
+        ZStack {
+            Color(red: 37/255, green: 37/255, blue: 37/255)
+                .ignoresSafeArea()
             Form {
                 // MARK: – Debug Toggle
 
@@ -32,35 +34,33 @@ struct ElecraftKPA1500ConfigView: View {
 
                 /// A section containing text fields for IP address and port,
                 /// as well as a connect/disconnect button and status indicator.
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 16) {
-                            /// Text field for editing the amplifier’s IP address, bound to `device.ipAddress`.
-                            TextField("IP Address", text: $device.ipAddress)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 200)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 16) {
+                        /// Text field for editing the amplifier’s IP address, bound to `device.ipAddress`.
+                        TextField("IP Address", text: $device.ipAddress)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 200)
 
-                            /// Text field for editing the amplifier’s port, bound to `device.port`.
-                            TextField("Port", value: $device.port, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 100)
-                        }
-                        HStack {
-                            /// Button that toggles between "Connect" and "Disconnect" based on `device.isConnected`.
-                            /// Tapping will call `device.connect()` or `device.disconnect()`.
-                            Button(device.isConnected ? "Disconnect" : "Connect") {
-                                if device.isConnected {
-                                    device.disconnect()
-                                } else {
-                                    device.connect()
-                                }
+                        /// Text field for editing the amplifier’s port, bound to `device.port`.
+                        TextField("Port", value: $device.port, formatter: NumberFormatter())
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 100)
+                    }
+                    HStack {
+                        /// Button that toggles between "Connect" and "Disconnect" based on `device.isConnected`.
+                        /// Tapping will call `device.connect()` or `device.disconnect()`.
+                        Button(device.isConnected ? "Disconnect" : "Connect") {
+                            if device.isConnected {
+                                device.disconnect()
+                            } else {
+                                device.connect()
                             }
-
-                            /// A small circle that is green when connected and red when disconnected.
-                            Circle()
-                                .fill(device.isConnected ? Color.green : Color.red)
-                                .frame(width: 12, height: 12)
                         }
+
+                        /// A small circle that is green when connected and red when disconnected.
+                        Circle()
+                            .fill(device.isConnected ? Color.green : Color.red)
+                            .frame(width: 12, height: 12)
                     }
                 }
 
@@ -90,8 +90,9 @@ struct ElecraftKPA1500ConfigView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .navigationTitle("KPA1500")
         }
-        .frame(minWidth: 350, maxWidth: 400)
 
         // MARK: – Connection Error Handling
 
