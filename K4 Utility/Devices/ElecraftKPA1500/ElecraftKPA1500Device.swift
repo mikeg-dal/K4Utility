@@ -139,7 +139,7 @@ class ElecraftKPA1500Device: ObservableObject {
         self.settingsStore = settingsStore
 
         // Load saved settings from SettingsStore
-        let saved = settingsStore.settings.kpa1500
+        let saved = settingsStore.settings.kpa1500.device
         self.ipAddress = saved.ipAddress
         self.port = saved.port
 
@@ -151,7 +151,7 @@ class ElecraftKPA1500Device: ObservableObject {
         $ipAddress
             .dropFirst()
             .sink { [weak self] new in
-                self?.settingsStore.settings.kpa1500.ipAddress = new
+                self?.settingsStore.settings.kpa1500.device.ipAddress = new
             }
             .store(in: &cancellables)
 
@@ -159,7 +159,7 @@ class ElecraftKPA1500Device: ObservableObject {
         $port
             .dropFirst()
             .sink { [weak self] new in
-                self?.settingsStore.settings.kpa1500.port = new
+                self?.settingsStore.settings.kpa1500.device.port = new
             }
             .store(in: &cancellables)
 

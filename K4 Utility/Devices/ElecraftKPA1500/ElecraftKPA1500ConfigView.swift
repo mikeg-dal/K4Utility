@@ -24,12 +24,6 @@ struct ElecraftKPA1500ConfigView: View {
             Color(red: 37/255, green: 37/255, blue: 37/255)
                 .ignoresSafeArea()
             Form {
-                // MARK: – Debug Toggle
-
-                /// A toggle switch that enables or disables debug logging for the amplifier.
-                Toggle("Debug", isOn: $device.debugEnabled)
-                    .padding(.bottom, 8)
-
                 // MARK: – Connection Settings
 
                 /// A section containing text fields for IP address and port,

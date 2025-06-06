@@ -44,30 +44,24 @@ struct SteppIRDashboardView: View {
     private var innerDashboard: some View {
         ZStack {
             Color(red: 37/255, green: 37/255, blue: 37/255)
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .center, spacing: 12) {
             // MARK: – Connection Status
 
-            /// A horizontal stack with a colored circle (green when connected, red when disconnected)
-            /// and the label "SteppIR" to indicate TCP connection status.
-            HStack(spacing: 12) {
-                Circle()
-                    .frame(width: 12, height: 12)
-                    .foregroundColor(device.isConnected ? Color.green : Color.red)
-                Text("SteppIR")
-                    .font(.headline)
-            }
+            /// Device header with connection status
+            DeviceHeader(title: "SteppIR", isConnected: device.isConnected)
 
             // MARK: – Tuning Status
 
-            /// A horizontal stack with a colored circle (red when tuning in progress, green otherwise)
-            /// and the label "Tuning" to indicate current tuning status.
+            /// Tuning status indicator, left aligned below the header
             HStack(spacing: 8) {
                 Circle()
                     .frame(width: 12, height: 12)
                     .foregroundColor(device.tuningStatus ? Color.red : Color.gray)
                 Text("Tuning")
                     .font(.headline)
+                    
             }
+            .frame(maxWidth: .infinity, alignment: .center)
 
             // MARK: – Frequency Display
 
@@ -213,7 +207,7 @@ struct SteppIRDashboardView: View {
                 }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .top)
             .foregroundColor(.white)
             .padding(8)
             .background(

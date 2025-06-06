@@ -27,10 +27,6 @@ struct GHRT21ConfigView: View {
             Form {
                 // MARK: – Debug Toggle
 
-                /// A toggle switch that enables or disables debug logging for the rotator device.
-                Toggle("Debug", isOn: $device.debugEnabled)
-                    .padding(.bottom, 8)
-
                 // MARK: – Connection Settings
 
                 /// A section containing text fields for IP address and port,

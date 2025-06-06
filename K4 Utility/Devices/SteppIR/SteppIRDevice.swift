@@ -105,7 +105,7 @@ class SteppIRDevice: ObservableObject {
         self.k4Device = k4Device
 
         // Load saved IP address and port
-        let saved = settingsStore.settings.steppIR
+        let saved = settingsStore.settings.steppIR.device
         self.ipAddress = saved.ipAddress
         self.port = saved.port
 
@@ -113,7 +113,7 @@ class SteppIRDevice: ObservableObject {
         $ipAddress
             .dropFirst()
             .sink { [weak self] new in
-                self?.settingsStore.settings.steppIR.ipAddress = new
+                self?.settingsStore.settings.steppIR.device.ipAddress = new
             }
             .store(in: &cancellables)
 
@@ -121,7 +121,7 @@ class SteppIRDevice: ObservableObject {
         $port
             .dropFirst()
             .sink { [weak self] new in
-                self?.settingsStore.settings.steppIR.port = new
+                self?.settingsStore.settings.steppIR.device.port = new
             }
             .store(in: &cancellables)
 

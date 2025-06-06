@@ -124,6 +124,8 @@ struct GHRT21DashboardView: View {
         }
         .foregroundColor(.white)
         .padding(8)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .frame(maxHeight: .infinity, alignment: .top)
         .background(Color(red: 37/255, green: 37/255, blue: 37/255))
         .overlay(
             RoundedRectangle(cornerRadius: 8)

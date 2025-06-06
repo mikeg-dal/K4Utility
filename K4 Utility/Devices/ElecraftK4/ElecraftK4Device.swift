@@ -58,10 +58,13 @@ public class ElecraftK4Device: ObservableObject {
         }
     }
 
+    /// True if the K4 is operating in QRP mode (power < 10).
+    @Published public var isQRPMode: Bool = false
+
     // MARK: – Private/Internal State
 
     /// Reference to your shared SettingsStore (injected at init).
-     let settingsStore: SettingsStore
+    let settingsStore: SettingsStore
 
     /// Any cancellables for Combine pipelines (e.g. persisting ip/port back to settings).
      var cancellables = Set<AnyCancellable>()
@@ -85,8 +88,8 @@ public class ElecraftK4Device: ObservableObject {
 
         // Load saved IP & port from SettingsStore
         let saved = settingsStore.settings.k4
-        self.ipAddress = saved.ipAddress
-        self.port = saved.port
+        self.ipAddress = saved.device.ipAddress
+        self.port = saved.device.port
 
         // Load user-defined macro labels and commands
         self.macroNames = settingsStore.settings.k4Macros.macroNames
@@ -112,7 +115,7 @@ public class ElecraftK4Device: ObservableObject {
         $ipAddress
             .dropFirst() // ignore the initial emit
             .sink { [weak self] newIP in
-                self?.settingsStore.settings.k4.ipAddress = newIP
+                self?.settingsStore.settings.k4.device.ipAddress = newIP
             }
             .store(in: &cancellables)
 
@@ -120,7 +123,7 @@ public class ElecraftK4Device: ObservableObject {
         $port
             .dropFirst()
             .sink { [weak self] newPort in
-                self?.settingsStore.settings.k4.port = newPort
+                self?.settingsStore.settings.k4.device.port = newPort
             }
             .store(in: &cancellables)
     }
@@ -159,6 +162,8 @@ public class ElecraftK4Device: ObservableObject {
             sendCommand("AI5;") // Request some status subset (e.g. forward/reflected)
             log("ℹ️ K4D: Sending initialization command TM1;")
             sendCommand("TM1;") // Request meter data
+            log("ℹ️ K4D: Sending initialization command PC;")
+            sendCommand("PC;") // Request current power setting
             startPollingTimer()
         } else {
             log("❌ K4D: TCPClient.connect(host:\(ipAddress), port:\(port)) failed")
@@ -282,8 +287,8 @@ public class ElecraftK4Device: ObservableObject {
                    let ref = Double(parts[1]),
                    let swrTenths = Double(parts[3]) {
                     DispatchQueue.main.async {
-                        self.forwardPower = fwd / 10.0
-                        self.reflectedPower = ref / 10.0
+                        self.forwardPower = self.isQRPMode ? fwd / 10.0 : fwd
+                        self.reflectedPower = self.isQRPMode ? ref / 10.0 : ref
                         self.swr = swrTenths / 10.0
                     }
                 }
@@ -299,8 +304,8 @@ public class ElecraftK4Device: ObservableObject {
                    let ref = Double(refStr),
                    let swrTenths = Double(swrStr) {
                     DispatchQueue.main.async {
-                        self.forwardPower = fwd / 10.0
-                        self.reflectedPower = ref / 10.0
+                        self.forwardPower = self.isQRPMode ? fwd / 10.0 : fwd
+                        self.reflectedPower = self.isQRPMode ? ref / 10.0 : ref
                         self.swr = swrTenths / 10.0
                     }
                 }
@@ -323,6 +328,15 @@ public class ElecraftK4Device: ObservableObject {
                 log("ℹ️ K4D: SW‐prefix message = '\(content)'")
                 DispatchQueue.main.async {
                     self.swr = tenths / 10.0
+                }
+            }
+        }
+        else if content.hasPrefix("PC") {
+            let valStr = String(content.dropFirst(2).prefix(3)) // Extract "nnn"
+            if let value = Int(valStr) {
+                DispatchQueue.main.async {
+                    self.isQRPMode = value < 10
+                    self.log("🔌 K4D: Power level updated = \(value) → isQRPMode = \(self.isQRPMode)")
                 }
             }
         }

@@ -23,6 +23,8 @@ struct DeviceSettingsView: View {
     
     /// The GreenHeron RT-21 rotator device, passed to its configuration view.
     @ObservedObject var rotatorDevice: GHRT21Device
+
+    @ObservedObject var settingsStore: SettingsStore
     
     // MARK: – View Body
     
@@ -36,6 +38,49 @@ struct DeviceSettingsView: View {
             Color(red: 37/255, green: 37/255, blue: 37/255)
                 .ignoresSafeArea()
             TabView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle("Enable Debug for All Devices", isOn: Binding(
+                        get: {
+                            steppirDevice.debugEnabled &&
+                            elecraftDevice.debugEnabled &&
+                            kpaDevice.debugEnabled &&
+                            rotatorDevice.debugEnabled
+                        },
+                        set: { newValue in
+                            steppirDevice.debugEnabled = newValue
+                            elecraftDevice.debugEnabled = newValue
+                            kpaDevice.debugEnabled = newValue
+                            rotatorDevice.debugEnabled = newValue
+                        }
+                    ))
+                    #if os(macOS)
+                    .toggleStyle(.checkbox)
+                    #else
+                    .toggleStyle(.switch)
+                    #endif
+                    .padding()
+                    
+                    Toggle("Connect Devices on App Startup", isOn: $settingsStore.settings.autoConnectEnabled)
+                        .toggleStyle(.switch)
+                        .padding(.horizontal)
+                    
+                    Toggle("K4", isOn: $settingsStore.settings.k4.isEnabled)
+                        .toggleStyle(.switch)
+                        .padding(.horizontal)
+                    Toggle("KPA", isOn: $settingsStore.settings.kpa1500.isEnabled)
+                        .toggleStyle(.switch)
+                        .padding(.horizontal)
+                    Toggle("Rotor", isOn: $settingsStore.settings.ghrt21.isEnabled)
+                        .toggleStyle(.switch)
+                        .padding(.horizontal)
+                    Toggle("SteppIR", isOn: $settingsStore.settings.steppIR.isEnabled)
+                        .toggleStyle(.switch)
+                        .padding(.horizontal)
+                }
+                .tabItem {
+                    Label("Global Config", systemImage: "gearshape")
+                }
+                
                 // SteppIR tab
                 SteppIRConfigView(device: steppirDevice)
                     .tabItem {

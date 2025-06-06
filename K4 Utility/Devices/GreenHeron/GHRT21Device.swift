@@ -70,8 +70,9 @@ class GHRT21Device: ObservableObject {
 
         // Load saved IP address and port
         let saved = settingsStore.settings.ghrt21
-        self.ipAddress = saved.device.ipAddress
-        self.port = saved.device.port
+        let deviceSettings = saved.device
+        self.ipAddress = deviceSettings.ipAddress
+        self.port = deviceSettings.port
         self.presetNames = saved.presetNames
         self.presetAzimuths = saved.presetAzimuths
 

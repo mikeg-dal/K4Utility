@@ -31,7 +31,7 @@ final class SettingsStore: ObservableObject {
     /// loading existing settings from `settings.json`, or applying default settings if the file does not exist.
     /// Sets up a Combine pipeline to automatically save changes to the `settings` property.
     init() {
-        // 1. Construct the Application Support URL
+        // 1. Construct the Application Support URL safely
         let fm = FileManager.default
         let baseDir: FileManager.SearchPathDirectory = {
             #if os(iOS)
@@ -40,54 +40,77 @@ final class SettingsStore: ObservableObject {
             return .applicationSupportDirectory
             #endif
         }()
-        let appSupport = try! fm
-            .url(for: baseDir,
-                 in: .userDomainMask,
-                 appropriateFor: nil,
-                 create: true)
-            .appendingPathComponent("K4Utility", isDirectory: true)
-        
+        guard let baseURL = try? fm.url(for: baseDir,
+                                        in: .userDomainMask,
+                                        appropriateFor: nil,
+                                        create: true) else {
+            fatalError("Could not determine Application Support directory.")
+        }
+        let appSupport = baseURL.appendingPathComponent("K4Utility", isDirectory: true)
         try? fm.createDirectory(at: appSupport, withIntermediateDirectories: true)
         fileURL = appSupport.appendingPathComponent("settings.json")
-        
+
         // 2. Load existing settings or use defaults
+        let loadedSettings: AppSettings
         if let data = try? Data(contentsOf: fileURL),
-           let loaded = try? JSONDecoder().decode(AppSettings.self, from: data)
-        {
-            // Successfully decoded existing settings
-            settings = loaded
+           let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) {
+            loadedSettings = decoded
         } else {
-            // Provide default settings when no file exists or decoding fails
-            settings = AppSettings(
-                k4: DeviceSettings(ipAddress: "192.168.1.10", port: 9200),
-                k4Macros: MacroSettings(
-                    macroNames: Array(repeating: "", count: 3),
-                    macroCommands: Array(repeating: "", count: 3)
-                ),
-                kpa1500: DeviceSettings(ipAddress: "192.168.1.11", port: 9201),
-                kpa1500Macros: MacroSettings(
-                    macroNames: Array(repeating: "", count: 3),
-                    macroCommands: Array(repeating: "", count: 3)
-                ),
-                steppIR: DeviceSettings(ipAddress: "192.168.1.18", port: 10001),
-                ghrt21: GHRT21Settings(
-                    device: DeviceSettings(ipAddress: "192.168.1.12", port: 4532),
-                    presetNames: Array(repeating: "", count: 8),
-                    presetAzimuths: Array(repeating: 0, count: 8)
-                )
-            )
+            loadedSettings = Self.defaultSettings()
         }
-        
+        self.settings = loadedSettings
+
         // 3. Automatically save on any change to `settings`
         $settings
             .dropFirst() // Skip the initial value to avoid saving defaults immediately
             .debounce(for: .milliseconds(200), scheduler: DispatchQueue.global())
             .sink { [weak self] new in
-                guard let self = self else { return }
-                if let data = try? JSONEncoder().encode(new) {
-                    try? data.write(to: self.fileURL, options: [.atomic])
-                }
+                self?.saveSettings(new)
             }
             .store(in: &cancellables)
+    }
+
+    // MARK: – Private Methods
+
+    /// Returns the default settings.
+    private static func defaultSettings() -> AppSettings {
+        AppSettings(
+            k4: K4Settings(device: DeviceSettings(ipAddress: "192.168.1.10", port: 9200), isEnabled: true),
+            k4Macros: MacroSettings(
+                macroNames: Array(repeating: "", count: 3),
+                macroCommands: Array(repeating: "", count: 3)
+            ),
+            kpa1500: KPA1500Settings(device: DeviceSettings(ipAddress: "192.168.1.9", port: 1500), isEnabled: true),
+            kpa1500Macros: MacroSettings(
+                macroNames: Array(repeating: "", count: 3),
+                macroCommands: Array(repeating: "", count: 3)
+            ),
+            steppIR: SteppIRSettings(device: DeviceSettings(ipAddress: "192.168.1.18", port: 10001), isEnabled: true),
+            ghrt21: GHRT21Settings(
+                device: DeviceSettings(ipAddress: "192.168.1.12", port: 4532),
+                presetNames: Array(repeating: "", count: 8),
+                presetAzimuths: Array(repeating: 0, count: 8)
+            )
+        )
+    }
+
+    /// Loads settings from disk or returns the default if loading fails.
+    private func loadSettings() -> AppSettings {
+        if let data = try? Data(contentsOf: fileURL),
+           let loaded = try? JSONDecoder().decode(AppSettings.self, from: data) {
+            return loaded
+        } else {
+            return Self.defaultSettings()
+        }
+    }
+
+    /// Saves the provided settings to disk. Logs an error if saving fails.
+    private func saveSettings(_ settings: AppSettings) {
+        do {
+            let data = try JSONEncoder().encode(settings)
+            try data.write(to: fileURL, options: [.atomic])
+        } catch {
+            print("⚠️ Failed to write settings to disk: \(error.localizedDescription)")
+        }
     }
 }

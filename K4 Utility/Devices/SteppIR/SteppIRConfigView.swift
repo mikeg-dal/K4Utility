@@ -25,9 +25,6 @@ struct SteppIRConfigView: View {
                 .ignoresSafeArea()
 
             Form {
-                // MARK: – Debug Toggle
-                Toggle("Debug", isOn: $device.debugEnabled)
-                    .padding(.bottom, 8)
 
                 // MARK: – Connection Settings
                 VStack(alignment: .leading, spacing: 8) {

@@ -37,6 +37,23 @@ struct GHRT21Settings: Codable {
 
     /// An array of user-defined azimuth values (0–359) corresponding to `presetNames`.
     var presetAzimuths: [Int]
+    
+    var isEnabled: Bool = true
+}
+
+struct K4Settings: Codable {
+    var device: DeviceSettings
+    var isEnabled: Bool = true
+}
+
+struct KPA1500Settings: Codable {
+    var device: DeviceSettings
+    var isEnabled: Bool = true
+}
+
+struct SteppIRSettings: Codable {
+    var device: DeviceSettings
+    var isEnabled: Bool = true
 }
 
 /// The top-level application settings container, including configuration for all devices.
@@ -45,7 +62,7 @@ struct AppSettings: Codable {
     // MARK: – Elecraft K4 Transceiver Settings
 
     /// Connection settings for the Elecraft K4 transceiver.
-    var k4: DeviceSettings
+    var k4: K4Settings
 
     /// Macro settings for the Elecraft K4 transceiver.
     var k4Macros: MacroSettings
@@ -53,7 +70,7 @@ struct AppSettings: Codable {
     // MARK: – Elecraft KPA-1500 Amplifier Settings
 
     /// Connection settings for the Elecraft KPA-1500 amplifier.
-    var kpa1500: DeviceSettings
+    var kpa1500: KPA1500Settings
 
     /// Macro settings for the Elecraft KPA-1500 amplifier.
     var kpa1500Macros: MacroSettings
@@ -61,12 +78,15 @@ struct AppSettings: Codable {
     // MARK: – SteppIR Antenna Controller Settings
 
     /// Connection settings for the SteppIR antenna controller.
-    var steppIR: DeviceSettings
+    var steppIR: SteppIRSettings
 
     // MARK: – GreenHeron RT-21 Rotator Settings
 
     /// Configuration and preset settings for the GHRT21 rotator.
     var ghrt21: GHRT21Settings
+
+    /// If true, the app will automatically attempt to connect to enabled devices on launch.
+    var autoConnectEnabled: Bool = false
 
     // MARK: – Future Device Settings
 

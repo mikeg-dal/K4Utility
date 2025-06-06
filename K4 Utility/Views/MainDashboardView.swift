@@ -25,9 +25,9 @@ struct MainDashboardView: View {
     /// The GreenHeron RT-21 rotator device, passed to its dashboard view.
     @ObservedObject var rotatorDevice: GHRT21Device
 
+    @ObservedObject var settingsStore: SettingsStore
+
     @State private var isShowingSettings: Bool = false
-    
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // MARK: – View Body
 
@@ -44,67 +44,88 @@ struct MainDashboardView: View {
                     .ignoresSafeArea()
                 #else
                 Color(red: 37/255, green: 37/255, blue: 37/255)
-                    .ignoresSafeArea(.all, edges: [.top, .bottom])
+                    .ignoresSafeArea()
                 #endif
 
-                ScrollView {
-                    #if os(iOS)
-                    if horizontalSizeClass == .compact {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            ElecraftK4DashboardView(device: elecraftDevice)
-                            ElecraftKPA1500DashboardView(device: kpaDevice)
-                            SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
-                            GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
+                #if os(iOS)
+                if geometry.size.width > geometry.size.height {
+                    // Landscape mode: show all devices in a ScrollView with two rows
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            HStack(spacing: 12) {
+                                if settingsStore.settings.k4.isEnabled {
+                                    ElecraftK4DashboardView(device: elecraftDevice)
+                                        .frame(width: geometry.size.width / 3.1)
+                                }
+                                if settingsStore.settings.kpa1500.isEnabled {
+                                    ElecraftKPA1500DashboardView(device: kpaDevice)
+                                        .frame(width: geometry.size.width / 3.1)
+                                }
+                                if settingsStore.settings.steppIR.isEnabled {
+                                    SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
+                                        .frame(width: geometry.size.width / 3.1)
+                                }
+                            }
+
+                            if settingsStore.settings.ghrt21.isEnabled {
+                                HStack {
+                                    Spacer()
+                                    GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
+                                        .frame(width: geometry.size.width / 3.1)
+                                    Spacer()
+                                }
+                            }
                         }
                         .padding()
-                        .frame(minWidth: geometry.size.width, alignment: .topLeading)
-                        .frame(maxHeight: .infinity, alignment: .top)
-                    } else {
-                        if geometry.size.width > geometry.size.height {
-                            // Landscape mode: single horizontal row
-                            HStack(alignment: .top, spacing: 12) {
+                    }
+                } else {
+                    // Portrait mode: two centered rows
+                    VStack(spacing: 40) {
+                        HStack(spacing: 12) {
+                            if settingsStore.settings.k4.isEnabled {
                                 ElecraftK4DashboardView(device: elecraftDevice)
+                            }
+                            if settingsStore.settings.kpa1500.isEnabled {
                                 ElecraftKPA1500DashboardView(device: kpaDevice)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+
+                        HStack(spacing: 12) {
+                            if settingsStore.settings.steppIR.isEnabled {
                                 SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
+                            }
+                            if settingsStore.settings.ghrt21.isEnabled {
                                 GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
                             }
-                            .padding()
-                            .frame(minWidth: geometry.size.width, alignment: .topLeading)
-                            .frame(maxHeight: .infinity, alignment: .top)
-                        } else {
-                            // Portrait mode: two centered rows
-                            VStack(spacing: 40) {
-                                HStack(spacing: 12) {
-                                    ElecraftK4DashboardView(device: elecraftDevice)
-                                    ElecraftKPA1500DashboardView(device: kpaDevice)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .center)
-
-                                HStack(spacing: 12) {
-                                    SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
-                                    GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .center)
-                            }
-                            .padding()
-                            .frame(minWidth: geometry.size.width, alignment: .top)
-                            .frame(maxHeight: .infinity, alignment: .top)
                         }
+                        .frame(maxWidth: .infinity, alignment: .center)
                     }
-                    #else
+                    .padding()
+                    .frame(minWidth: geometry.size.width, alignment: .top)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                }
+                #else
+                ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .top, spacing: 12) {
+                        if settingsStore.settings.k4.isEnabled {
                             ElecraftK4DashboardView(device: elecraftDevice)
+                        }
+                        if settingsStore.settings.kpa1500.isEnabled {
                             ElecraftKPA1500DashboardView(device: kpaDevice)
                         }
-                        SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
-                        GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
+                        if settingsStore.settings.steppIR.isEnabled {
+                            SteppIRDashboardView(device: steppirDevice, k4Device: elecraftDevice)
+                        }
+                        if settingsStore.settings.ghrt21.isEnabled {
+                            GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
+                        }
                     }
                     .padding()
                     .frame(minWidth: geometry.size.width, alignment: .topLeading)
                     .frame(maxHeight: .infinity, alignment: .top)
-                    #endif
                 }
+                #endif
             }
             #if os(iOS)
             .toolbar {
@@ -124,7 +145,8 @@ struct MainDashboardView: View {
                         steppirDevice: steppirDevice,
                         elecraftDevice: elecraftDevice,
                         kpaDevice: kpaDevice,
-                        rotatorDevice: rotatorDevice
+                        rotatorDevice: rotatorDevice,
+                        settingsStore: settingsStore
                     )
                 }
             }

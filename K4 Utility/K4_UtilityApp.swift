@@ -46,6 +46,32 @@ struct K4_UtilityApp: App {
         _rotatorDevice = StateObject(wrappedValue: GHRT21Device(settingsStore: store))
     }
 
+    // MARK: – Device Management Helpers
+
+    /// Connects all enabled devices based on the settings.
+    private func connectEnabledDevices() {
+        if settingsStore.settings.k4.isEnabled {
+            k4dDevice.connect()
+        }
+        if settingsStore.settings.kpa1500.isEnabled {
+            kpaDevice.connect()
+        }
+        if settingsStore.settings.steppIR.isEnabled {
+            steppirDevice.connect()
+        }
+        if settingsStore.settings.ghrt21.isEnabled {
+            rotatorDevice.connect()
+        }
+    }
+
+    /// Disconnects all devices.
+    private func disconnectAllDevices() {
+        steppirDevice.disconnect()
+        k4dDevice.disconnect()
+        kpaDevice.disconnect()
+        rotatorDevice.disconnect()
+    }
+
     // MARK: – Scene Definitions
 
     /// The main body of the app, defining the primary window group and settings scene.
@@ -56,15 +82,18 @@ struct K4_UtilityApp: App {
                 steppirDevice: steppirDevice,
                 elecraftDevice: k4dDevice,
                 kpaDevice: kpaDevice,
-                rotatorDevice: rotatorDevice
+                rotatorDevice: rotatorDevice,
+                settingsStore: settingsStore
             )
             .environmentObject(settingsStore)
+            .task {
+                if settingsStore.settings.autoConnectEnabled {
+                    connectEnabledDevices()
+                }
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background || newPhase == .inactive {
-                    steppirDevice.disconnect()
-                    k4dDevice.disconnect()
-                    kpaDevice.disconnect()
-                    rotatorDevice.disconnect()
+                    disconnectAllDevices()
                 }
             }
         }
@@ -73,7 +102,8 @@ struct K4_UtilityApp: App {
                 steppirDevice: steppirDevice,
                 elecraftDevice: k4dDevice,
                 kpaDevice: kpaDevice,
-                rotatorDevice: rotatorDevice
+                rotatorDevice: rotatorDevice,
+                settingsStore: settingsStore
             )
             .environmentObject(settingsStore)
         }
@@ -84,18 +114,21 @@ struct K4_UtilityApp: App {
                     steppirDevice: steppirDevice,
                     elecraftDevice: k4dDevice,
                     kpaDevice: kpaDevice,
-                    rotatorDevice: rotatorDevice
+                    rotatorDevice: rotatorDevice,
+                    settingsStore: settingsStore
                 )
                 .navigationTitle("K4 Utility")
                 .navigationBarTitleDisplayMode(.inline)
             }
             .environmentObject(settingsStore)
+            .task {
+                if settingsStore.settings.autoConnectEnabled {
+                    connectEnabledDevices()
+                }
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background || newPhase == .inactive {
-                    steppirDevice.disconnect()
-                    k4dDevice.disconnect()
-                    kpaDevice.disconnect()
-                    rotatorDevice.disconnect()
+                    disconnectAllDevices()
                 }
             }
         }
