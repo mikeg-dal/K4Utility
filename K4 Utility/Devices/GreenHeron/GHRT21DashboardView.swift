@@ -31,9 +31,9 @@ struct GHRT21DashboardView: View {
 
     /// A grid of preset buttons (2 rows, 4 columns) that send `goToPreset(at:)` commands to `device`.
     private var presetGrid: some View {
-        VStack(spacing: 8) {
+        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
             ForEach(0..<2, id: \.self) { row in
-                HStack(spacing: 8) {
+                GridRow {
                     ForEach(0..<4, id: \.self) { col in
                         let index = row * 4 + col
                         Button(action: {
@@ -47,89 +47,62 @@ struct GHRT21DashboardView: View {
                                     .font(.caption2)
                                     .foregroundColor(.gray)
                             }
-                            .frame(minWidth: 50)
-                            .padding(6)
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                        .foregroundColor(.white)
-                        .cornerRadius(2)
                     }
                 }
             }
         }
     }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // MARK: – Connection Status
-
-            /// A horizontal stack with a colored circle (green when connected, red when disconnected)
-            /// and the label "GH-RT21" to indicate connection status.
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(device.isConnected ? Color.green : Color.red)
-                    .frame(width: 12, height: 12)
-                Text("GH-RT21")
-                    .font(.headline)
-            }
-
-            // Heading display moved here
+        DeviceCardContainer {
+            DeviceHeader(title: "GH-RT21", isConnected: device.isConnected)
             Text("\(Int(computedHeading))°")
                 .font(.caption2)
-                .padding(.top, 4)
 
-            // MARK: – Heading Visualization
-
-            /// Displays an AzimuthMapView overlaid with a BeamWedgeShape indicating the current heading.
-            HStack {
-                ZStack {
-                    AzimuthMapView()
-                    BeamWedgeShape(
-                        heading: computedHeading,
-                        beamwidth: beamwidth
-                    )
-                    .fill(Color.gray.opacity(0.55))
-                    .animation(.easeOut(duration: 0.3), value: computedHeading)
+            VStack(alignment: .center) {
+                // MARK: – Heading Visualization
+                HStack {
+                    ZStack {
+                        AzimuthMapView()
+                        BeamWedgeShape(
+                            heading: computedHeading,
+                            beamwidth: beamwidth
+                        )
+                        .fill(Color.gray.opacity(0.55))
+                        .animation(.easeOut(duration: 0.3), value: computedHeading)
+                    }
+                    .frame(width: 200, height: 200)
                 }
-                .frame(width: 200, height: 200)
-            }
-            .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity)
 
-            // MARK: – Preset Buttons
-
-            /// The grid of preset buttons allowing the user to send the rotator to stored headings.
-            HStack {
-                Spacer()
+                // MARK: – Preset Buttons
                 presetGrid
-                Spacer()
-            }
+                    .frame(maxWidth: .infinity, alignment: .center)
 
-            // MARK: – Step Controls
-
-            /// A step control button that sends `stopMotion()` to the device when tapped.
-            HStack(spacing: 8) {
-                Button("■") {
-                    device.stopMotion()
+                // MARK: – Step Controls
+                HStack(spacing: 8) {
+                    Button("■") {
+                        device.stopMotion()
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .modifier(RedCapsuleButtonStyle())
                 }
-                .buttonStyle(PlainButtonStyle())
-                .frame(minWidth: 40)
-                .font(.caption2)
-                .padding(6)
-                .background(Color.red)
-                .foregroundColor(.white)
-                .cornerRadius(8)
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
         }
-        .foregroundColor(.white)
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .top)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(Color(red: 37/255, green: 37/255, blue: 37/255))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white, lineWidth: 2)
-        )
+    }
+
+}
+
+// MARK: - RedCapsuleButtonStyle
+struct RedCapsuleButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.caption2)
+            .padding(6)
+            .frame(minWidth: 40)
+            .background(Color.red)
+            .foregroundColor(.white)
+            .cornerRadius(8)
     }
 }

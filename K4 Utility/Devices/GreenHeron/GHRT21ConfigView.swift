@@ -77,7 +77,7 @@ struct GHRT21ConfigView: View {
                                         set: { device.presetNames[i] = $0 }
                                     ))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .frame(width: 90)
+                                    .frame(width: 110)
 
                                     TextField("Az", value: Binding(
                                         get: { device.presetAzimuths[i] },
@@ -97,7 +97,7 @@ struct GHRT21ConfigView: View {
                                         set: { device.presetNames[i] = $0 }
                                     ))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .frame(width: 90)
+                                    .frame(width: 110)
 
                                     TextField("Az", value: Binding(
                                         get: { device.presetAzimuths[i] },

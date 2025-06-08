@@ -257,10 +257,23 @@ class GHRT21Device: ObservableObject {
 
     /// Sends a "stop motion" command to halt any ongoing movement.
     func stopMotion() {
+        // Pause polling before sending stop command
+        pollingTimer?.invalidate()
+        pollingTimer = nil
         let cmd = "ST;"
         log("🛰️ GHRT21: Sending stop command \(cmd)")
         if let data = cmd.data(using: .ascii) {
             client?.send(data)
+        }
+        // Resume polling after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self else { return }
+            self.pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                self?.pollStatus()
+            }
+            if let timer = self.pollingTimer {
+                RunLoop.main.add(timer, forMode: .common)
+            }
         }
     }
 

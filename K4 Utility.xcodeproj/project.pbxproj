@@ -30,22 +30,9 @@
 		1BE9B1062DF0EC9B00A6FB87 /* K4-Utility-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "K4-Utility-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		1BE9B1052DF0E4E200A6FB87 /* Exceptions for "K4 Utility" folder in "K4 Utility" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			platformFiltersByRelativePath = {
-				LaunchScreen.storyboard = (ios, );
-			};
-			target = 1B35802E2DDA3F77002E0FDE /* K4 Utility */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1B3580312DDA3F77002E0FDE /* K4 Utility */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				1BE9B1052DF0E4E200A6FB87 /* Exceptions for "K4 Utility" folder in "K4 Utility" target */,
-			);
 			path = "K4 Utility";
 			sourceTree = "<group>";
 		};
@@ -437,16 +424,14 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.9.0;
-				"MARKETING_VERSION[sdk=iphoneos*]" = 0.9.1;
 				"MARKETING_VERSION[sdk=macosx*]" = 0.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.michgagar.K4-Utility";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = macosx;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Debug;
 		};
@@ -479,16 +464,14 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.9.0;
-				"MARKETING_VERSION[sdk=iphoneos*]" = 0.9.1;
 				"MARKETING_VERSION[sdk=macosx*]" = 0.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.michgagar.K4-Utility";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = macosx;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Release;
 		};

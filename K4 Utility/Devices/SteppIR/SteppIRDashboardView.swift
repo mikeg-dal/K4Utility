@@ -18,15 +18,10 @@ struct SteppIRDashboardView: View {
     /// The observed ElecraftK4Device used for auto-syncing frequency when SteppIR is not in tracking mode.
     @ObservedObject var k4Device: ElecraftK4Device
 
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
-
 
     var body: some View {
         // Modularized: Let parent (e.g., MainDashboardView) control all sizing/positioning.
         innerDashboard
-#if os(macOS)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-#endif
         // MARK: – Auto-sync SteppIR to K4 frequency
         /// Listens for frequency changes from `k4Device` and, when SteppIR auto-tracking is disabled,
         /// updates the SteppIR frequency (rounded to the nearest 10 kHz).
@@ -81,7 +76,7 @@ struct SteppIRDashboardView: View {
                 HStack(spacing: 12) {
                     /// Button to set direction to "Normal".
                     Button("Norm") {
-                        device.direction = .normal
+                        device.requestDirectionChange(.normal)
                     }
                     .font(.caption)
                     .padding(6)
@@ -95,7 +90,7 @@ struct SteppIRDashboardView: View {
 
                     /// Button to set direction to "180".
                     Button("180") {
-                        device.direction = .deg180
+                        device.requestDirectionChange(.deg180)
                     }
                     .font(.caption)
                     .padding(6)
@@ -109,7 +104,7 @@ struct SteppIRDashboardView: View {
 
                     /// Button to set direction to "BID".
                     Button("BID") {
-                        device.direction = .bidirectional
+                        device.requestDirectionChange(.bidirectional)
                     }
                     .font(.caption)
                     .padding(6)

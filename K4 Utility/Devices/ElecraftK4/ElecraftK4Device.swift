@@ -381,4 +381,18 @@ public class ElecraftK4Device: ObservableObject {
             self.connectionError = "Connection lost"
         }
     }
+    /// A formatted string representing the frequency in MHz (e.g. "7.000").
+    public var formattedFrequency: String {
+        guard frequencyHz > 0 else { return "" }
+        let mhz = Double(frequencyHz) / 1_000_000.0
+        return String(format: "%.3f", mhz)
+    }
+
+    /// Returns the macro label at a given index, or a fallback label if unavailable.
+    public func macroLabel(at index: Int) -> String {
+        guard index >= 0 && index < macroNames.count else {
+            return "Macro \(index + 1)"
+        }
+        return macroNames[index].isEmpty ? "Macro \(index + 1)" : macroNames[index]
+    }
 }
