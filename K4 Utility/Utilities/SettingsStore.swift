@@ -87,7 +87,12 @@ final class SettingsStore: ObservableObject {
                 device: DeviceSettings(ipAddress: "192.168.1.12", port: 4532),
                 presetNames: Array(repeating: "", count: 8),
                 presetAzimuths: Array(repeating: 0, count: 8)
-            )
+            ),
+            k4EQPresets: [
+                "Default": [100: 0, 200: 0, 400: 0, 800: 0, 1200: 0, 1600: 0, 2400: 0, 3200: 0]
+            ],
+            k4SelectedEQPreset: "Default",
+            k4SelectedEQPresetIndex: -1
         )
     }
 

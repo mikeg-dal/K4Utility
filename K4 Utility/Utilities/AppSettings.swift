@@ -88,6 +88,15 @@ struct AppSettings: Codable {
     /// If true, the app will automatically attempt to connect to enabled devices on launch.
     var autoConnectEnabled: Bool = false
 
+    // MARK: – K4 EQ Presets
+    var k4EQPresets: [String: [Int: Double]] = [
+        "Default": [100: 0, 200: 0, 400: 0, 800: 0, 1200: 0, 1600: 0, 2400: 0, 3200: 0]
+    ]
+    var k4SelectedEQPreset: String = "Default"
+    /// Index of the currently selected K4 EQ preset, or -1 if none.
+    var k4SelectedEQPresetIndex: Int = -1
+    
+    
     // MARK: – Future Device Settings
 
     /// Add properties for additional device settings as needed.

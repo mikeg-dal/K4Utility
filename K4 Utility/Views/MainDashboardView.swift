@@ -54,6 +54,7 @@ struct MainDashboardView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         if settingsStore.settings.k4.isEnabled {
                             ElecraftK4DashboardView(device: elecraftDevice)
+                            
                         }
                         if settingsStore.settings.kpa1500.isEnabled {
                             ElecraftKPA1500DashboardView(device: kpaDevice)
@@ -64,6 +65,9 @@ struct MainDashboardView: View {
                         if settingsStore.settings.ghrt21.isEnabled {
                             GHRT21DashboardView(device: rotatorDevice, steppirDevice: steppirDevice)
                         }
+                      
+                        
+                        
                     }
                     .padding()
                     .frame(minWidth: geometry.size.width, alignment: .topLeading)
