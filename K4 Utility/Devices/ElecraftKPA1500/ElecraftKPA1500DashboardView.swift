@@ -7,16 +7,18 @@
 
 import SwiftUI
 
-/// A SwiftUI view that displays the dashboard for the Elecraft KPA-1500 amplifier,
-/// showing connection status, current band, mode, control buttons, and power metrics.
+/// A SwiftUI view that displays the dashboard for the Elecraft
+/// KPA-1500 amplifier,showing connection status, current band,
+/// mode, control buttons,and power metrics.
+///
 struct ElecraftKPA1500DashboardView: View {
-    /// The observed Elecraft KPA-1500 device which provides published properties
-    /// such as connection status, band, mode, and power readings.
+    /// The observed Elecraft KPA-1500 device which provides
+    /// published properties such as connection status, band,
+    /// mode, and power readings.
     @ObservedObject var device: ElecraftKPA1500Device
 
     var body: some View {
-        DeviceCardContainer {
-            DeviceHeader(title: "KPA1500", isConnected: device.isConnected)
+        DeviceCardContainer(title: "KPA1500", isConnected: device.isConnected) {
 
             // MARK: – Band Display
             HStack {
@@ -28,52 +30,26 @@ struct ElecraftKPA1500DashboardView: View {
             HStack {
                 Text("Mode: \(device.operateMode)")
                     .font(.subheadline)
+                    
             }
 
-            // MARK: – Control Buttons
+            // MARK: – Macro Buttons
             VStack(spacing: 8) {
-                // First row: Operate and M1
+                // First row: Operate and Macro 1
                 HStack(spacing: 8) {
                     Button("Operate") {
                         let shouldOperate = device.operateMode != "Operate"
                         device.setOperateMode(shouldOperate)
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .frame(minWidth: 30)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(device.operateMode == "Operate"
-                                ? Color(red: 66/255, green: 100/255, blue: 157/255)
-                                : Color(red: 61/255, green: 61/255, blue: 61/255))
-                    .foregroundColor(.white)
-                    .cornerRadius(1)
+                    .buttonStyle(CompactDeviceButtonStyle(isActive: device.operateMode == "Operate"))
 
-                    Button(action: { sendMacro(at: 0) }) {
-                        Text(macroButtonLabel(for: 0))
-                            .frame(minWidth: 30)
-                            .font(.caption2)
-                            .padding(6)
-                            .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                            .foregroundColor(.white)
-                            .cornerRadius(1)
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                    macroButton(index: 0)
                 }
 
-                // Second row: M2 and M3
+                // Second row: Macro 2 and 3
                 HStack(spacing: 8) {
-                    ForEach(1..<3) { index in
-                        Button(action: { sendMacro(at: index) }) {
-                            Text(macroButtonLabel(for: index))
-                                .frame(minWidth: 30)
-                                .font(.caption2)
-                                .padding(6)
-                                .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                                .foregroundColor(.white)
-                                .cornerRadius(1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
+                    macroButton(index: 1)
+                    macroButton(index: 2)
                 }
             }
             .padding(8)
@@ -100,16 +76,18 @@ struct ElecraftKPA1500DashboardView: View {
         }
     }
 
-    private func macroButtonLabel(for index: Int) -> String {
-        if let name = device.macroNames[safe: index], !name.isEmpty {
-            return name
-        }
-        return "M\(index + 1)"
-    }
+    // MARK: - Macros
 
     private func sendMacro(at index: Int) {
         if index < device.macroCommands.count {
             device.sendCommand(device.macroCommands[index])
         }
+    }
+
+    private func macroButton(index: Int) -> some View {
+        Button(device.macroLabel(at: index)) {
+            sendMacro(at: index)
+        }
+        .buttonStyle(CompactDeviceButtonStyle())
     }
 }

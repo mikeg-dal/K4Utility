@@ -17,6 +17,9 @@ final class SettingsStore: ObservableObject {
     /// The in-memory application settings. When modified, changes are automatically saved to disk.
     @Published var settings: AppSettings
     
+    /// If true, enables debug output from settings-related file operations.
+    @Published public var debugEnabled: Bool = false
+    
     // MARK: – Private Properties
     
     /// The file URL where `settings.json` is stored in Application Support.
@@ -33,13 +36,7 @@ final class SettingsStore: ObservableObject {
     init() {
         // 1. Construct the Application Support URL safely
         let fm = FileManager.default
-        let baseDir: FileManager.SearchPathDirectory = {
-            #if os(iOS)
-            return .documentDirectory
-            #else
-            return .applicationSupportDirectory
-            #endif
-        }()
+        let baseDir: FileManager.SearchPathDirectory = .applicationSupportDirectory
         guard let baseURL = try? fm.url(for: baseDir,
                                         in: .userDomainMask,
                                         appropriateFor: nil,
@@ -110,7 +107,9 @@ final class SettingsStore: ObservableObject {
             let data = try JSONEncoder().encode(settings)
             try data.write(to: fileURL, options: [.atomic])
         } catch {
-            print("⚠️ Failed to write settings to disk: \(error.localizedDescription)")
+            if debugEnabled {
+                print("⚠️ Failed to write settings to disk: \(error.localizedDescription)")
+            }
         }
     }
 }

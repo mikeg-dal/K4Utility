@@ -3,12 +3,12 @@
 //  K4 Utility
 //
 //  Created by Mike Garcia on 5/20/25.
-//
 
 import SwiftUI
 
-/// A SwiftUI view for configuring the Elecraft KPA-1500 amplifier's connection settings,
-/// including IP address, port, debug toggle, and connect/disconnect controls.
+/// A SwiftUI view for configuring the Elecraft KPA-1500 amplifier's connection
+///  settings, including IP address, port, and connect/disconnect controls.
+///
 struct ElecraftKPA1500ConfigView: View {
     /// The observed Elecraft KPA-1500 device instance whose settings can be modified.
     @ObservedObject var device: ElecraftKPA1500Device
@@ -18,6 +18,20 @@ struct ElecraftKPA1500ConfigView: View {
 
     /// Access to the shared settings store (injected via environment) for persisting device settings.
     @EnvironmentObject var settingsStore: SettingsStore
+
+    private func bindingForName(at index: Int) -> Binding<String> {
+        Binding(
+            get: { device.macroNames[index] },
+            set: { device.macroNames[index] = $0 }
+        )
+    }
+
+    private func bindingForCommand(at index: Int) -> Binding<String> {
+        Binding(
+            get: { device.macroCommands[index] },
+            set: { device.macroCommands[index] = $0 }
+        )
+    }
 
     var body: some View {
         ZStack {
@@ -66,26 +80,18 @@ struct ElecraftKPA1500ConfigView: View {
                     HStack(spacing: 16) {
                         ForEach(0..<3, id: \.self) { index in
                             VStack(spacing: 4) {
-                                TextField("Name", text: Binding(
-                                    get: { device.macroNames[index] },
-                                    set: { device.macroNames[index] = $0 }
-                                ))
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 112)
-
-                                TextField("Macro", text: Binding(
-                                    get: { device.macroCommands[index] },
-                                    set: { device.macroCommands[index] = $0 }
-                                ))
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 112)
+                                TextField("Name", text: bindingForName(at: index))
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(width: 112)
+                                TextField("Macro", text: bindingForCommand(at: index))
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(width: 112)
                             }
                         }
                     }
                 }
             }
-            .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("KPA1500")
+            .navigationTitle("KPA1500 Settings")
         }
 
         // MARK: – Connection Error Handling

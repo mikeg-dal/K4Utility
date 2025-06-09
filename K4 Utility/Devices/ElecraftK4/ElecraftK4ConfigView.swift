@@ -7,7 +7,8 @@
 import SwiftUI
 
 /// A SwiftUI view for configuring the Elecraft K4 device’s connection settings,
-/// including IP address, port, debug toggle, and connect/disconnect controls.
+/// including IP address, port, and connect/disconnect controls.
+///
 struct ElecraftK4ConfigView: View {
     /// The observed Elecraft K4 device instance whose settings can be modified.
     @ObservedObject var device: ElecraftK4Device
@@ -65,6 +66,7 @@ struct ElecraftK4ConfigView: View {
                 }
 
                 // MARK: – Custom Macros
+                
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Custom Macros")
                         .font(.headline)
@@ -83,16 +85,20 @@ struct ElecraftK4ConfigView: View {
                     }
                 }
             }
-            .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("K4 Config")
+            .navigationTitle("K4 Settings")
         }
+        // MARK: – Connection Error Handling
+
+        /// Listens for changes to `device.connectionError`. If non-nil, triggers an alert.
         .onReceive(device.$connectionError) { error in
             showErrorAlert = (error != nil)
         }
+        /// Presents an alert if a connection error occurs, displaying the error message.
         .alert(isPresented: $showErrorAlert) {
             Alert(
                 title: Text("Connection Error"),
                 message: Text(device.connectionError ?? "Unknown error"),
+                // Clear the error so the alert does not reappear.
                 dismissButton: .default(Text("OK")) {
                     device.connectionError = nil
                 }

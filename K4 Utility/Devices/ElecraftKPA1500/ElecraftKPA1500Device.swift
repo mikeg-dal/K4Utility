@@ -420,4 +420,11 @@ class ElecraftKPA1500Device: ObservableObject {
             client?.send(data)
         }
     }
+    /// Returns the macro label at a given index, or a fallback label if unavailable.
+    public func macroLabel(at index: Int) -> String {
+        guard index >= 0 && index < macroNames.count else {
+            return "Macro \(index + 1)"
+        }
+        return macroNames[index].isEmpty ? "Macro \(index + 1)" : macroNames[index]
+    }
 }

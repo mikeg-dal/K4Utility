@@ -53,29 +53,27 @@ struct DeviceSettingsView: View {
                             rotatorDevice.debugEnabled = newValue
                         }
                     ))
-                    #if os(macOS)
                     .toggleStyle(.checkbox)
-                    #else
-                    .toggleStyle(.switch)
-                    #endif
                     .padding()
                     
                     Toggle("Connect Devices on App Startup", isOn: $settingsStore.settings.autoConnectEnabled)
-                        .toggleStyle(.switch)
+                        .toggleStyle(.checkbox)
                         .padding(.horizontal)
                     
-                    Toggle("K4", isOn: $settingsStore.settings.k4.isEnabled)
-                        .toggleStyle(.switch)
+                    GroupBox(label: Label("Enable", systemImage: "checkmark.circle")) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle("K4", isOn: $settingsStore.settings.k4.isEnabled)
+                                .toggleStyle(.checkbox)
+                            Toggle("KPA", isOn: $settingsStore.settings.kpa1500.isEnabled)
+                                .toggleStyle(.checkbox)
+                            Toggle("Rotor", isOn: $settingsStore.settings.ghrt21.isEnabled)
+                                .toggleStyle(.checkbox)
+                            Toggle("SteppIR", isOn: $settingsStore.settings.steppIR.isEnabled)
+                                .toggleStyle(.checkbox)
+                        }
                         .padding(.horizontal)
-                    Toggle("KPA", isOn: $settingsStore.settings.kpa1500.isEnabled)
-                        .toggleStyle(.switch)
-                        .padding(.horizontal)
-                    Toggle("Rotor", isOn: $settingsStore.settings.ghrt21.isEnabled)
-                        .toggleStyle(.switch)
-                        .padding(.horizontal)
-                    Toggle("SteppIR", isOn: $settingsStore.settings.steppIR.isEnabled)
-                        .toggleStyle(.switch)
-                        .padding(.horizontal)
+                    }
+                    .padding(.horizontal)
                 }
                 .tabItem {
                     Label("Global Config", systemImage: "gearshape")

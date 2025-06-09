@@ -29,27 +29,40 @@ struct CompactDeviceButtonStyle: ButtonStyle {
 
 /// A reusable container view that provides styling and layout for individual device dashboards.
 struct DeviceCardContainer<Content: View>: View {
+    let title: String
+    let isConnected: Bool
     let content: () -> Content
-
-    init(@ViewBuilder content: @escaping () -> Content) {
+    
+    init(title: String, isConnected: Bool, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.isConnected = isConnected
         self.content = content
     }
-
+    
     var body: some View {
         ZStack {
             Color(red: 37/255, green: 37/255, blue: 37/255) // fixed background
-            VStack(alignment: .center, spacing: 12) {
-                content()
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(isConnected ? Color.green : Color.red)
+                        .frame(width: 12, height: 12)
+                    Text(title)
+                        .font(.headline)
+                }
+                
+                VStack(alignment: .center) {
+                    content()
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
             }
-            .padding(8)
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(3)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white, lineWidth: 4)
+            )
+            .cornerRadius(8)
+            .buttonStyle(CompactDeviceButtonStyle())
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white, lineWidth: 2)
-        )
-        .cornerRadius(8)
-        .buttonStyle(CompactDeviceButtonStyle())
     }
 }

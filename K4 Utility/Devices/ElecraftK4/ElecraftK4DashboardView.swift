@@ -7,11 +7,14 @@
 
 import SwiftUI
 
-/// A SwiftUI view that displays the dashboard for the Elecraft K4 transceiver,
-/// showing connection status, current frequency, power metrics, and meters.
+/// A SwiftUI view that displays the dashboard for the Elecraft K4
+/// transceiver,showing connection status, current frequency,
+/// power metrics, and meters.
+///
 struct ElecraftK4DashboardView: View {
-    /// The observed Elecraft K4 device which provides published properties
-    /// such as frequency, power, and connection status.
+    /// The observed Elecraft K4 device which provides published
+    /// properties such as frequency, power, and connection
+    /// status.
     @ObservedObject var device: ElecraftK4Device
     @State private var isTuning: Bool = false
     
@@ -23,16 +26,11 @@ struct ElecraftK4DashboardView: View {
         }
     }
     
-    private func sendMacro(at index: Int) {
-        if index < device.macroCommands.count {
-            device.sendCommand(device.macroCommands[index])
-        }
-    }
 
     var body: some View {
-        DeviceCardContainer {
-            DeviceHeader(title: "K4D", isConnected: device.isConnected)
-
+        DeviceCardContainer(title: "K4D", isConnected: device.isConnected) {
+            // Your content without repeating the header
+        
             Text(frequencyText)
                 .bold()
 
@@ -84,18 +82,20 @@ struct ElecraftK4DashboardView: View {
         }
     }
 
-    private func macroButton(index: Int) -> some View {
-        Button(action: { sendMacro(at: index) }) {
-            Text(device.macroLabel(at: index))
-                .frame(minWidth: 30)
-                .font(.caption2)
-                .padding(6)
-                .background(Color(red: 61/255, green: 61/255, blue: 61/255))
-                .foregroundColor(.white)
-                .cornerRadius(1)
-        }
-        .buttonStyle(PlainButtonStyle())
+// MARK: - Macros
+
+private func sendMacro(at index: Int) {
+    if index < device.macroCommands.count {
+        device.sendCommand(device.macroCommands[index])
     }
+}
+
+private func macroButton(index: Int) -> some View {
+    Button(device.macroLabel(at: index)) {
+        sendMacro(at: index)
+    }
+    .buttonStyle(CompactDeviceButtonStyle())
+}
 }
 
 // MARK: – Safe Array Access

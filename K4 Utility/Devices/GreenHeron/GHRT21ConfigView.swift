@@ -3,12 +3,13 @@
 //  K4 Utility
 //
 //  Created by Mike Garcia on 5/21/25.
-//
 
 import SwiftUI
 
-/// A SwiftUI view for configuring the GreenHeron RT-21 rotator's connection settings
-/// and managing presets, including fields for IP address, port, and preset names/azimuths.
+/// A SwiftUI view for configuring the GreenHeron RT-21 rotator's connectsettings
+/// and managing presets, including fields for IP address, port, and
+///  names/azimuths.
+///
 struct GHRT21ConfigView: View {
     /// The observed GHRT21Device instance whose connection settings and presets can be modified.
     @ObservedObject var device: GHRT21Device
@@ -25,7 +26,7 @@ struct GHRT21ConfigView: View {
                 .ignoresSafeArea()
 
             Form {
-                // MARK: – Debug Toggle
+             
 
                 // MARK: – Connection Settings
 
@@ -63,14 +64,14 @@ struct GHRT21ConfigView: View {
 
                 // MARK: – Presets Grid (4 per row)
 
-                /// A VStack containing the "Presets" header and a grid of text fields for editing preset names and azimuths (two rows of four).
+                /// A section containing the "Presets" header and a grid layout for editing preset names and azimuths (two rows of four).
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Presets")
                         .font(.headline)
 
-                    VStack(spacing: 16) {
-                        HStack(spacing: 16) {
-                            ForEach(0..<4) { i in
+                    Grid(horizontalSpacing: 16, verticalSpacing: 16) {
+                        GridRow {
+                            ForEach(0..<4, id: \.self) { i in
                                 VStack(spacing: 4) {
                                     TextField("Name", text: Binding(
                                         get: { device.presetNames[i] },
@@ -89,8 +90,8 @@ struct GHRT21ConfigView: View {
                             }
                         }
 
-                        HStack(spacing: 16) {
-                            ForEach(4..<8) { i in
+                        GridRow {
+                            ForEach(4..<8, id: \.self) { i in
                                 VStack(spacing: 4) {
                                     TextField("Name", text: Binding(
                                         get: { device.presetNames[i] },
@@ -111,8 +112,7 @@ struct GHRT21ConfigView: View {
                     }
                 }
             }
-            .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("Rotator Config")
+            .navigationTitle("Rotator Settings")
         }
 
         // MARK: – Connection Error Handling

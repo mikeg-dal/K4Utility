@@ -76,7 +76,6 @@ struct K4_UtilityApp: App {
 
     /// The main body of the app, defining the primary window group and settings scene.
     var body: some Scene {
-        #if os(macOS)
         WindowGroup {
             MainDashboardView(
                 steppirDevice: steppirDevice,
@@ -107,31 +106,6 @@ struct K4_UtilityApp: App {
             )
             .environmentObject(settingsStore)
         }
-        #else
-        WindowGroup {
-            NavigationStack {
-                MainDashboardView(
-                    steppirDevice: steppirDevice,
-                    elecraftDevice: k4dDevice,
-                    kpaDevice: kpaDevice,
-                    rotatorDevice: rotatorDevice,
-                    settingsStore: settingsStore
-                )
-                .navigationTitle("K4 Utility")
-                .navigationBarTitleDisplayMode(.inline)
-            }
-            .environmentObject(settingsStore)
-            .task {
-                if settingsStore.settings.autoConnectEnabled {
-                    connectEnabledDevices()
-                }
-            }
-            .onChange(of: scenePhase) { _, newPhase in
-                if newPhase == .background || newPhase == .inactive {
-                    disconnectAllDevices()
-                }
-            }
-        }
-        #endif
+        
     }
 }

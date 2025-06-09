@@ -3,12 +3,12 @@
 //  K4 Utility
 //
 //  Created by Mike Garcia on 5/21/25.
-//
 
 import SwiftUI
 
-/// A SwiftUI view for configuring the SteppIR antenna controller’s connection settings,
-/// including IP address, port, debug toggle, and connect/disconnect controls.
+/// A SwiftUI view for configuring the SteppIR antenna controller’s connection
+///  settings, including IP address, port,  and connect/disconnect controls.
+///
 struct SteppIRConfigView: View {
     /// The observed SteppIRDevice instance whose settings can be modified.
     @ObservedObject var device: SteppIRDevice
@@ -52,20 +52,23 @@ struct SteppIRConfigView: View {
                     }
                 }
             }
-            .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("SteppIR Config")
-            #if os(macOS)
-            .frame(minWidth: 350, maxWidth: 400)
-            #endif
+            .navigationTitle("SteppIR Settings")
+
         }
+        // MARK: – Connection Error Handling
+
+        /// Listens for changes to `device.connectionError`. If non-nil, triggers an alert.
+        
         .onReceive(device.$connectionError) { error in
             showErrorAlert = (error != nil)
         }
+        /// Presents an alert if a connection error occurs, displaying the error message.
         .alert(isPresented: $showErrorAlert) {
             Alert(
                 title: Text("Connection Error"),
                 message: Text(device.connectionError ?? "Unknown error"),
                 dismissButton: .default(Text("OK")) {
+                    // Clear the error so the alert does not reappear.
                     device.connectionError = nil
                 }
             )
