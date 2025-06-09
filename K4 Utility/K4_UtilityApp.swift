@@ -90,10 +90,11 @@ struct K4_UtilityApp: App {
                     connectEnabledDevices()
                 }
             }
-            .onChange(of: scenePhase) { newPhase in
-                if newPhase == .background {
+            .onChange(of: scenePhase) { oldValue, newValue in
+                if newValue == .background || newValue == .inactive {
                     disconnectAllDevices()
                 }
+            
             }
         }
         Settings {
