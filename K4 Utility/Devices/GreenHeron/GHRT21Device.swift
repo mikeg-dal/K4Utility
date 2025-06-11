@@ -277,6 +277,21 @@ class GHRT21Device: ObservableObject {
         }
     }
 
+    // MARK: – Public API: Arbitrary Azimuth Command
+
+    /// Sends a "go to" command to move to the specified azimuth in degrees.
+    ///
+    /// - Parameter degrees: The azimuth in degrees (0–359) to move to.
+    func goToAzimuth(degrees: Int) {
+        let heading = degrees
+        let work = String(format: "%03d", heading)
+        let cmd = "AP0" + work + "\r;"
+        log("🛰️ GHRT21: Sending goToAzimuth command \(cmd)")
+        if let data = cmd.data(using: .ascii) {
+            client?.send(data)
+        }
+    }
+
     // MARK: – Private Helpers
 
     /// Helper for conditional debug logging to the console.

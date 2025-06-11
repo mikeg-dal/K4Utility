@@ -23,6 +23,10 @@ struct GHRT21DashboardView: View {
     /// The beamwidth (in degrees) used to draw the wedge overlay on the azimuth map.
     private let beamwidth: Double = 66.0
 
+    @State private var draggedAzimuth: Double? = nil
+    @State private var dragStartAzimuth: Double? = nil
+    @State private var dragStartAngle: Double? = nil
+
     /// Computes the rotor heading based on the device status and applies a 180° flip if `steppirDevice.direction == .deg180`.
     private var computedHeading: Double {
         let raw = Double(device.status) ?? 0
@@ -66,14 +70,73 @@ struct GHRT21DashboardView: View {
             VStack(alignment: .center) {
                 // MARK: – Heading Visualization
                 HStack {
-                    ZStack {
-                        AzimuthMapView()
-                        BeamWedgeShape(
-                            heading: computedHeading,
-                            beamwidth: beamwidth
-                        )
-                        .fill(Color.gray.opacity(0.55))
-                        .animation(.easeOut(duration: 0.3), value: computedHeading)
+                    GeometryReader { geo in
+                        ZStack {
+                            AzimuthMapView()
+
+                            // Actual heading (gray)
+                            BeamWedgeShape(
+                                heading: computedHeading,
+                                beamwidth: beamwidth
+                            )
+                            .fill(Color.gray.opacity(0.55))
+                            .animation(.easeOut(duration: 0.3), value: computedHeading)
+
+                            // Dragged preview (red)
+                            if let preview = draggedAzimuth {
+                                BeamWedgeShape(
+                                    heading: preview,
+                                    beamwidth: beamwidth
+                                )
+                                .fill(Color.red.opacity(0.5))
+                            }
+
+                            Circle()
+                                .fill(Color.clear)
+                                .contentShape(Circle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { value in
+                                            let loc = value.location
+                                            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+                                            let dx = loc.x - center.x
+                                            let dy = center.y - loc.y
+                                            let radians = atan2(dy, dx)
+                                            let degrees = radians * 180 / .pi
+                                            let angle = degrees < 0 ? degrees + 360 : degrees
+
+                                            if dragStartAzimuth == nil || dragStartAngle == nil {
+                                                let offset = dx < 0 ? -10.0 : 10.0
+                                                dragStartAzimuth = fmod(computedHeading + offset + 360, 360)
+                                                dragStartAngle = angle
+                                                draggedAzimuth = dragStartAzimuth
+                                            } else if let startAz = dragStartAzimuth, let startAngle = dragStartAngle {
+                                                let delta = angle - startAngle
+                                                let updated = fmod(startAz - delta + 360, 360)
+                                                draggedAzimuth = updated
+                                            }
+                                        }
+                                        .onEnded { value in
+                                            let loc = value.location
+                                            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+                                            let dx = loc.x - center.x
+                                            let dy = center.y - loc.y
+                                            let radians = atan2(dy, dx)
+                                            let degrees = radians * 180 / .pi
+                                            let angle = degrees < 0 ? degrees + 360 : degrees
+
+                                            if let startAz = dragStartAzimuth, let startAngle = dragStartAngle {
+                                                let delta = angle - startAngle
+                                                let finalAz = fmod(startAz - delta + 360, 360)
+                                                device.goToAzimuth(degrees: Int(finalAz))
+                                            }
+
+                                            draggedAzimuth = nil
+                                            dragStartAzimuth = nil
+                                            dragStartAngle = nil
+                                        }
+                                )
+                        }
                     }
                     .frame(width: 200, height: 200)
                 }
