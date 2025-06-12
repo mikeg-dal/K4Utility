@@ -103,7 +103,6 @@ struct DeviceSettingsView: View {
                         Label("Rotator Config", systemImage: "arrow.triangle.2.circlepath")
                     }
             }
-            .scrollDismissesKeyboard(.immediately)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
 #if os(macOS)

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// The main application entry point for K4 Utility, handling app lifecycle, device instantiation,
 /// and scene definitions for the main dashboard and device settings.
@@ -90,11 +91,8 @@ struct K4_UtilityApp: App {
                     connectEnabledDevices()
                 }
             }
-            .onChange(of: scenePhase) { oldValue, newValue in
-                if newValue == .background || newValue == .inactive {
-                    disconnectAllDevices()
-                }
-            
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+                disconnectAllDevices()
             }
         }
         Settings {
