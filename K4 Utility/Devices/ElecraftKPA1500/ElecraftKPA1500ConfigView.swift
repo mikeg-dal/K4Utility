@@ -35,7 +35,7 @@ struct ElecraftKPA1500ConfigView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 37/255, green: 37/255, blue: 37/255)
+            Color(.windowBackgroundColor)
                 .ignoresSafeArea()
             Form {
                 // MARK: – Connection Settings

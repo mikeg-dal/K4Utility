@@ -35,26 +35,10 @@ struct DeviceSettingsView: View {
     /// - GreenHeron tab: shows GHRT21ConfigView.
     var body: some View {
         ZStack {
-            Color(red: 37/255, green: 37/255, blue: 37/255)
+            Color(.windowBackgroundColor)
                 .ignoresSafeArea()
             TabView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Toggle("Enable Debug for All Devices", isOn: Binding(
-                        get: {
-                            steppirDevice.debugEnabled &&
-                            elecraftDevice.debugEnabled &&
-                            kpaDevice.debugEnabled &&
-                            rotatorDevice.debugEnabled
-                        },
-                        set: { newValue in
-                            steppirDevice.debugEnabled = newValue
-                            elecraftDevice.debugEnabled = newValue
-                            kpaDevice.debugEnabled = newValue
-                            rotatorDevice.debugEnabled = newValue
-                        }
-                    ))
-                    .toggleStyle(.checkbox)
-                    .padding()
                     
                     Toggle("Connect Devices on App Startup", isOn: $settingsStore.settings.autoConnectEnabled)
                         .toggleStyle(.checkbox)

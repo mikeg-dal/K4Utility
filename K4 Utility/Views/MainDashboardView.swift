@@ -47,7 +47,8 @@ struct MainDashboardView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Color(red: 37/255, green: 37/255, blue: 37/255)
+                Color(.controlBackgroundColor)
+                    .brightness(-0.05)
                     .ignoresSafeArea()
 
                 ScrollView {

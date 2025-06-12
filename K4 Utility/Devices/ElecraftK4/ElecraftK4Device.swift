@@ -381,11 +381,16 @@ public class ElecraftK4Device: ObservableObject {
             self.connectionError = "Connection lost"
         }
     }
-    /// A formatted string representing the frequency in MHz (e.g. "7.000").
+    /// A formatted string representing the frequency in "MHz.kHz.Hz" (e.g. "007.000.000").
     public var formattedFrequency: String {
         guard frequencyHz > 0 else { return "" }
-        let mhz = Double(frequencyHz) / 1_000_000.0
-        return String(format: "%.3f", mhz)
+        // Break the raw frequencyHz (in Hertz) into MHz, kHz, and Hz components
+        let mhzPart = frequencyHz / 1_000_000
+        let remainder = frequencyHz % 1_000_000
+        let khzPart = remainder / 1_000
+        let hzPart = remainder % 1_000
+        // Format as "MHz.kHz.Hz", each with leading zeros to three digits
+        return String(format: "%d.%03d.%03d", mhzPart, khzPart, hzPart)
     }
 
     /// Returns the macro label at a given index, or a fallback label if unavailable.
