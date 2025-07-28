@@ -51,22 +51,25 @@ struct K4_UtilityApp: App {
 
     /// Connects all enabled devices based on the settings.
     private func connectEnabledDevices() {
-        if settingsStore.settings.k4.isEnabled {
-            k4dDevice.connect()
-        }
-        if settingsStore.settings.kpa1500.isEnabled {
-            kpaDevice.connect()
-        }
-        if settingsStore.settings.steppIR.isEnabled {
-            steppirDevice.connect()
-        }
-        if settingsStore.settings.ghrt21.isEnabled {
-            rotatorDevice.connect()
+        Task {
+            if settingsStore.settings.k4.isEnabled {
+                k4dDevice.connect()
+            }
+            if settingsStore.settings.kpa1500.isEnabled {
+                kpaDevice.connect()
+            }
+            if settingsStore.settings.steppIR.isEnabled {
+                steppirDevice.connect()
+            }
+            if settingsStore.settings.ghrt21.isEnabled {
+                rotatorDevice.connect()
+            }
         }
     }
 
     /// Disconnects all devices.
     private func disconnectAllDevices() {
+        // Disconnect in proper order: SteppIR first to avoid issues with K4 frequency sync
         steppirDevice.disconnect()
         k4dDevice.disconnect()
         kpaDevice.disconnect()

@@ -11,14 +11,33 @@ import SwiftUI  // for SettingsStore access
 
 /// Manages the TCP/IP connection and status polling for an Elecraft KPA-1500 amplifier.
 /// Publishes operational metrics (power, temperature, SWR) and handles sending/receiving
-/// amplifier-specific commands.
-///
-/// This class:
-/// 1. Connects and disconnects via TCPClient.
-/// 2. Periodically polls the amplifier for status frames.
-/// 3. Parses incoming frames and updates published properties.
-/// 4. Provides methods to change operate/standby mode.
+/// amplifier-specific commands with automatic reconnection and proper error handling.
 class ElecraftKPA1500Device: ObservableObject {
+    // MARK: - Connection State Types
+    
+    enum DeviceConnectionState: Equatable {
+        case disconnected
+        case connecting
+        case connected
+        case reconnecting
+        case failed(String)
+        
+        var isConnectedBool: Bool {
+            if case .connected = self { return true }
+            return false
+        }
+        
+        var displayText: String {
+            switch self {
+            case .disconnected: return "Disconnected"
+            case .connecting: return "Connecting..."
+            case .connected: return "Connected"
+            case .reconnecting: return "Reconnecting..."
+            case .failed(let message): return "Error: \(message)"
+            }
+        }
+    }
+    
     // MARK: – Published Connection & Status Properties
 
     /// User-defined button labels for macros (e.g., "ATU", "Reset", etc.)
@@ -29,11 +48,14 @@ class ElecraftKPA1500Device: ObservableObject {
 
     /// Indicates whether the TCP connection to the amplifier is currently open.
     @Published var isConnected: Bool = false
+    
+    /// Detailed connection state with better error information
+    @Published var connectionState: DeviceConnectionState = .disconnected
 
     /// Holds a human-readable error message if a connection or communication error occurs.
     @Published var connectionError: String?
 
-    /// The amplifier’s set power output in watts.
+    /// The amplifier's set power output in watts.
     @Published var powerOutput: Double = 0
 
     /// The current amplifier temperature in degrees Celsius.
@@ -66,7 +88,7 @@ class ElecraftKPA1500Device: ObservableObject {
         didSet { log("📉 KPA1500: reflectedPower changed to \(reflectedPower) W") }
     }
 
-    /// The amplifier’s input power reading in watts.
+    /// The amplifier's input power reading in watts.
     /// Updates log a debug message with the new input power.
     @Published var inputPower: Double = 0 {
         didSet { log("🔌 KPA1500: inputPower changed to \(inputPower) W") }
@@ -78,29 +100,26 @@ class ElecraftKPA1500Device: ObservableObject {
         didSet { log("📏 KPA1500: SWR changed to \(swr)") }
     }
 
-    /// The amplifier’s plate voltage in volts.
+    /// The amplifier's plate voltage in volts.
     /// Updates log a debug message with the new plate voltage.
     @Published var paVoltage: Double = 0 {
         didSet { log("🔌 KPA1500: paVoltage changed to \(paVoltage) V") }
     }
 
-    /// The amplifier’s plate current in amperes.
+    /// The amplifier's plate current in amperes.
     /// Updates log a debug message with the new plate current.
     @Published var paCurrent: Double = 0 {
         didSet { log("🔌 KPA1500: paCurrent changed to \(paCurrent) A") }
     }
 
     /// If true, debug logging (print statements) is enabled.
-    @Published var debugEnabled: Bool = false
-
-    // MARK: – Private Helpers
-
-    /// Prints a debug message when `debugEnabled` is true.
-    ///
-    /// - Parameter message: The debug string to print.
-    private func log(_ message: String) {
-        if debugEnabled {
-            print(message)
+    @Published var debugEnabled: Bool = false {
+        didSet {
+            if debugEnabled {
+                TCPClient.enableDebug()
+            } else {
+                TCPClient.disableDebug()
+            }
         }
     }
 
@@ -114,6 +133,11 @@ class ElecraftKPA1500Device: ObservableObject {
 
     /// A timer that triggers periodic status polling.
     private var pollingTimer: Timer?
+    
+    /// Reconnection management
+    private var reconnectionTimer: Timer?
+    private var reconnectionAttempts = 0
+    private let maxReconnectionAttempts = 5
 
     // MARK: – Configuration & Persistence
 
@@ -147,6 +171,18 @@ class ElecraftKPA1500Device: ObservableObject {
         self.macroNames = settingsStore.settings.kpa1500Macros.macroNames
         self.macroCommands = settingsStore.settings.kpa1500Macros.macroCommands
 
+        setupSettingsPersistence()
+        setupConnectionStateObservation()
+    }
+
+    deinit {
+        // Ensure the connection is closed if the object is deallocated
+        disconnect()
+    }
+    
+    // MARK: - Settings Persistence
+    
+    private func setupSettingsPersistence() {
         // Persist IP address changes back into SettingsStore
         $ipAddress
             .dropFirst()
@@ -179,92 +215,202 @@ class ElecraftKPA1500Device: ObservableObject {
             }
             .store(in: &cancellables)
     }
-
-    deinit {
-        // Ensure the connection is closed if the object is deallocated
-        disconnect()
+    
+    private func setupConnectionStateObservation() {
+        // Update legacy isConnected property when connection state changes
+        $connectionState
+            .map { $0.isConnectedBool }
+            .assign(to: &$isConnected)
+        
+        // Update error message when connection fails
+        $connectionState
+            .sink { [weak self] state in
+                if case .failed(let message) = state {
+                    self?.connectionError = message
+                } else if state.isConnectedBool {
+                    self?.connectionError = nil
+                }
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: – Public API: Connection Management
 
     /// Attempts to open a TCP connection to the Elecraft KPA-1500 amplifier.
-    ///
-    /// On success:
-    /// - Sets `isConnected = true`.
-    /// - Schedules a timer to poll status every 0.3 seconds.
-    /// On failure:
-    /// - Calls `handleConnectionError()` to record the error and clean up.
     func connect() {
-        log("🔗 KPA1500: Attempting to connect to \(ipAddress):\(port)")
-        client = TCPClient()
-        client?.onReceive = handleIncoming(data:)
-        client?.onDisconnect = handleDisconnect
-
-        let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
-        if success {
+        guard connectionState != .connecting && connectionState != .connected else {
+            log("⚠️ Connect called but already connecting/connected")
+            return
+        }
+        
+        log("🚀 Starting connection to \(ipAddress):\(port)")
+        connectionState = .connecting
+        reconnectionAttempts = 0
+        
+        Task {
+            await performConnection()
+        }
+    }
+    
+    /// Performs the actual connection attempt with retry logic
+    @MainActor
+    private func performConnection() async {
+        do {
+            client = TCPClient()
+            setupTCPClientCallbacks()
+            
+            let success = try await client?.connect(
+                host: ipAddress,
+                port: UInt16(port),
+                timeout: 3.0,
+                maxRetries: 1
+            ) ?? false
+            
+            if success {
+                log("✅ Connection successful")
+                connectionState = .connected
+                reconnectionAttempts = 0
+                
+                // Start polling
+                startPollingTimer()
+            } else {
+                handleConnectionFailure("Connection failed")
+            }
+            
+        } catch let error as TCPClient.TCPError {
+            handleConnectionFailure(error.localizedDescription)
+        } catch {
+            handleConnectionFailure("Unexpected error: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Sets up TCP client callback handlers with proper memory management
+    private func setupTCPClientCallbacks() {
+        client?.onReceive = { [weak self] data in
+            self?.handleIncoming(data: data)
+        }
+        
+        client?.onDisconnect = { [weak self] in
             DispatchQueue.main.async {
-                self.isConnected = true
+                self?.handleUnexpectedDisconnection()
             }
-            // Schedule status polling on the main run loop
-            pollingTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
-                self?.pollStatus()
+        }
+        
+        client?.onStateChange = { [weak self] state in
+            DispatchQueue.main.async {
+                self?.handleTCPStateChange(state)
             }
-            if let timer = pollingTimer {
-                RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+    
+    /// Handles TCP client state changes for better connection feedback
+    private func handleTCPStateChange(_ state: TCPClient.ConnectionState) {
+        switch state {
+        case .connecting:
+            if connectionState != .connecting {
+                connectionState = .connecting
             }
-        } else {
-            handleConnectionError()
+        case .connected:
+            // Handled in performConnection
+            break
+        case .disconnected:
+            if connectionState == .connected || connectionState == .reconnecting {
+                handleUnexpectedDisconnection()
+            }
+        case .failed(let error):
+            handleConnectionFailure(error.localizedDescription)
         }
     }
 
-    /// Disconnects from the amplifier, invalidates polling, and resets `isConnected`.
+    /// Disconnects from the amplifier, invalidates polling, and resets connection state.
     func disconnect() {
         log("🔌 KPA1500: Disconnecting")
-        pollingTimer?.invalidate()
-        pollingTimer = nil
+        
+        stopPollingTimer()
+        reconnectionTimer?.invalidate()
+        reconnectionTimer = nil
 
         client?.disconnect()
-        client?.onReceive = nil
         client = nil
 
-        DispatchQueue.main.async {
-            self.isConnected = false
-        }
+        connectionState = .disconnected
     }
 
     // MARK: – Private Helpers: Connection Error Handling
-
-    /// Called when the initial connection attempt fails.
-    /// Records an error message in `connectionError` and cleans up resources.
-    private func handleConnectionError() {
-        log("❌ KPA1500: Connection failed to \(ipAddress):\(port)")
-        pollingTimer?.invalidate()
-        pollingTimer = nil
-
+    
+    /// Handles connection failures with user-friendly error messages
+    private func handleConnectionFailure(_ message: String) {
+        log("❌ Connection failed: \(message)")
+        stopPollingTimer()
+        
         client?.disconnect()
-        client?.onReceive = nil
         client = nil
-
-        DispatchQueue.main.async {
-            self.connectionError = "Unable to reach device at \(self.ipAddress):\(self.port)"
+        
+        connectionState = .failed(message)
+        
+        // Schedule reconnection if this wasn't a manual disconnect
+        if reconnectionAttempts < maxReconnectionAttempts {
+            scheduleReconnection()
         }
     }
-
-    /// Called when the TCP client is disconnected unexpectedly.
-    /// Sets `isConnected = false` and records a "Connection lost" error message.
-    private func handleDisconnect() {
-        log("🔴 KPA1500: Connection lost")
-        pollingTimer?.invalidate()
-        pollingTimer = nil
-
+    
+    /// Handles unexpected disconnections and attempts reconnection
+    private func handleUnexpectedDisconnection() {
+        guard connectionState.isConnectedBool || connectionState == .reconnecting else {
+            return // Don't reconnect if we manually disconnected
+        }
+        
+        log("🔴 Connection lost unexpectedly")
+        stopPollingTimer()
         client = nil
-        DispatchQueue.main.async {
-            self.isConnected = false
-            self.connectionError = "Connection lost"
+        
+        if reconnectionAttempts < maxReconnectionAttempts {
+            scheduleReconnection()
+        } else {
+            connectionState = .failed("Connection lost. Maximum reconnection attempts exceeded.")
+        }
+    }
+    
+    /// Schedules automatic reconnection with progressive backoff
+    private func scheduleReconnection() {
+        reconnectionAttempts += 1
+        let delay = min(3.0 + Double(reconnectionAttempts * 2), 15.0) // Start at 5s, increase by 2s, cap at 15s
+        
+        log("🔄 Scheduling reconnection attempt \(reconnectionAttempts) in \(delay)s")
+        connectionState = .reconnecting
+        
+        reconnectionTimer?.invalidate()
+        reconnectionTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            if self.connectionState == .reconnecting {
+                Task {
+                    await self.performConnection()
+                }
+            }
         }
     }
 
     // MARK: – Private API: Status Polling
+    
+    /// Starts the polling timer for periodic status updates
+    private func startPollingTimer() {
+        stopPollingTimer()
+        
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+            guard let self = self, self.connectionState.isConnectedBool else { return }
+            self.pollStatus()
+        }
+        
+        if let timer = pollingTimer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+    
+    /// Stops the polling timer
+    private func stopPollingTimer() {
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+    }
 
     /// Sends a series of status query commands to the amplifier.
     /// Each command ends with a carriage return and is defined by the KPA-1500 protocol.
@@ -401,6 +547,11 @@ class ElecraftKPA1500Device: ObservableObject {
     ///
     /// - Parameter enabled: Pass `true` to enter Operate mode, `false` for Standby.
     func setOperateMode(_ enabled: Bool) {
+        guard connectionState.isConnectedBool else {
+            log("⚠️ KPA1500: Cannot send command - not connected")
+            return
+        }
+        
         let code = enabled ? "1" : "0"
         let cmd = "^OS\(code);"
         let fullCmd = cmd + "\r"
@@ -414,17 +565,35 @@ class ElecraftKPA1500Device: ObservableObject {
     ///
     /// - Parameter command: The full command string (e.g., "^RS;", "^AT;").
     public func sendCommand(_ command: String) {
+        guard connectionState.isConnectedBool else {
+            log("⚠️ KPA1500: Cannot send command - not connected")
+            return
+        }
+        
         log("📤 KPA1500: Sending command: \(command)")
         let fullCmd = command + "\r"
         if let data = fullCmd.data(using: .ascii) {
             client?.send(data)
         }
     }
+    
     /// Returns the macro label at a given index, or a fallback label if unavailable.
     public func macroLabel(at index: Int) -> String {
         guard index >= 0 && index < macroNames.count else {
             return "Macro \(index + 1)"
         }
         return macroNames[index].isEmpty ? "Macro \(index + 1)" : macroNames[index]
+    }
+    
+    // MARK: – Private Helpers
+
+    /// Prints a debug message when `debugEnabled` is true.
+    ///
+    /// - Parameter message: The debug string to print.
+    private func log(_ message: String) {
+        if debugEnabled {
+            let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+            print("[\(timestamp)] \(message)")
+        }
     }
 }

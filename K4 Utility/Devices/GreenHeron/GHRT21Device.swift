@@ -11,6 +11,7 @@ import SwiftUI  // for SettingsStore access
 
 /// Manages TCP/IP communication and polling for the Greenheron RT-21 rotator.
 /// Publishes status updates and provides methods to send control commands.
+@MainActor
 class GHRT21Device: ObservableObject {
     // MARK: – Published Connection & Status Properties
 
@@ -116,47 +117,81 @@ class GHRT21Device: ObservableObject {
 
     // MARK: – Public API: Connection Management
 
-    /// Attempts to open a TCP connection to the rotator and starts polling.
-    ///
-    /// On success:
-    /// - Sets `isConnected = true`.
-    /// - Starts a timer to poll status every second.
-    /// On failure:
-    /// - Calls `handleConnectionError()` to record the error and clean up.
+    /// Attempts to open a TCP connection to the rotator and starts polling with async support.
     func connect() {
-        log("🔗 GHRT21: Attempting to connect to \(ipAddress):\(port)")
-        client = TCPClient()
-        client?.onReceive = handleIncoming(data:)
-        client?.onDisconnect = handleDisconnect
-
-        let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
-        if success {
-            DispatchQueue.main.async {
-                self.isConnected = true
+        guard !isConnected else {
+            log("⚠️ Connect called but already connected")
+            return
+        }
+        
+        log("🚀 Starting connection to \(ipAddress):\(port)")
+        
+        Task {
+            await performConnection()
+        }
+    }
+    
+    /// Performs the actual connection attempt with retry logic
+    @MainActor
+    private func performConnection() async {
+        do {
+            client = TCPClient()
+            client?.onReceive = { [weak self] data in
+                self?.handleIncoming(data: data)
             }
-            pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-                self?.pollStatus()
+            client?.onDisconnect = { [weak self] in
+                DispatchQueue.main.async {
+                    self?.handleDisconnect()
+                }
             }
-            if let timer = pollingTimer {
-                RunLoop.main.add(timer, forMode: .common)
+            
+            let success = try await client?.connect(
+                host: ipAddress,
+                port: UInt16(port),
+                timeout: 3.0,
+                maxRetries: 1
+            ) ?? false
+            
+            if success {
+                log("✅ Connection successful")
+                isConnected = true
+                connectionError = nil
+                
+                // Start polling
+                pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                    Task { 
+                        await self?.pollStatus()
+                    }
+                }
+                if let timer = pollingTimer {
+                    RunLoop.main.add(timer, forMode: .common)
+                }
+            } else {
+                handleConnectionError()
             }
-        } else {
-            handleConnectionError()
+            
+        } catch let error as TCPClient.TCPError {
+            connectionError = error.localizedDescription
+            log("❌ Connection failed: \(error.localizedDescription)")
+        } catch {
+            connectionError = "Unexpected error: \(error.localizedDescription)"
+            log("❌ Connection failed: \(error.localizedDescription)")
         }
     }
 
     /// Disconnects from the rotator, stops polling, and resets connection state.
-    func disconnect() {
+    nonisolated func disconnect() {
         log("🔌 GHRT21: Disconnecting")
-        pollingTimer?.invalidate()
-        pollingTimer = nil
-
-        client?.disconnect()
-        client?.onReceive = nil
-        client = nil
-
-        DispatchQueue.main.async {
-            self.isConnected = false
+        
+        Task { @MainActor in
+            pollingTimer?.invalidate()
+            pollingTimer = nil
+            
+            client?.disconnect()
+            client?.onReceive = nil
+            client = nil
+            
+            isConnected = false
         }
     }
 
@@ -266,10 +301,14 @@ class GHRT21Device: ObservableObject {
             client?.send(data)
         }
         // Resume polling after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self else { return }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            guard self.isConnected else { return }
+            
             self.pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-                self?.pollStatus()
+                Task {
+                    await self?.pollStatus()
+                }
             }
             if let timer = self.pollingTimer {
                 RunLoop.main.add(timer, forMode: .common)
@@ -295,9 +334,11 @@ class GHRT21Device: ObservableObject {
     // MARK: – Private Helpers
 
     /// Helper for conditional debug logging to the console.
-    private func log(_ message: String) {
-        if debugEnabled {
-            print(message)
+    nonisolated private func log(_ message: String) {
+        Task { @MainActor in
+            if debugEnabled {
+                print(message)
+            }
         }
     }
 }

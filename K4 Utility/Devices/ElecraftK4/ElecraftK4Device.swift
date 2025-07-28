@@ -11,6 +11,31 @@ import Combine
 /// Manages the TCP/IP connection to an Elecraft K4 transceiver,
 /// sends ASCII‐based commands, and publishes meter/frequency updates.
 public class ElecraftK4Device: ObservableObject {
+    // MARK: - Connection State Types
+    
+    public enum DeviceConnectionState: Equatable {
+        case disconnected
+        case connecting
+        case connected
+        case reconnecting
+        case failed(String)
+        
+        var isConnectedBool: Bool {
+            if case .connected = self { return true }
+            return false
+        }
+        
+        var displayText: String {
+            switch self {
+            case .disconnected: return "Disconnected"
+            case .connecting: return "Connecting..."
+            case .connected: return "Connected"
+            case .reconnecting: return "Reconnecting..."
+            case .failed(let message): return "Error: \(message)"
+            }
+        }
+    }
+    
     // MARK: – Published Properties (for SwiftUI / Combine)
 
     /// Current frequency in Hertz (e.g. 7000000 for 7.000 MHz).
@@ -20,10 +45,13 @@ public class ElecraftK4Device: ObservableObject {
     @Published public var currentFrequencyDisplay: String = ""
 
     /// Indicates whether the socket is connected to the K4.
-    @Published public  var isConnected: Bool = false
+    @Published public var isConnected: Bool = false
+
+    /// Detailed connection state with better error information
+    @Published public var connectionState: DeviceConnectionState = .disconnected
 
     /// If a connection error occurs, this will hold the localized message.
-    @Published public  var connectionError: String?
+    @Published public var connectionError: String?
 
     /// Forward power reading from the K4 (watts or protocol‐specific units).
     @Published public var forwardPower: Double = 0
@@ -67,23 +95,28 @@ public class ElecraftK4Device: ObservableObject {
     let settingsStore: SettingsStore
 
     /// Any cancellables for Combine pipelines (e.g. persisting ip/port back to settings).
-     var cancellables = Set<AnyCancellable>()
+    var cancellables = Set<AnyCancellable>()
 
     /// The actual TCPClient instance (one per device).
-     var client: TCPClient?
+    var client: TCPClient?
 
     /// A buffer for processing partial incoming data from the K4.
-     var buffer = Data()
+    var buffer = Data()
 
     /// A timer to poll periodically for status updates (e.g. AI5, TM1).
     /// You may choose to start/stop this when `isConnected` toggles.
-     var pollingTimer: Timer?
+    var pollingTimer: Timer?
+    
+    /// Reconnection management
+    private var reconnectionTimer: Timer?
+    private var reconnectionAttempts = 0
+    private let maxReconnectionAttempts = 5
 
     // MARK: – Initialization
 
     /// Designated initializer.
     /// Inject your `SettingsStore` (or other persistence) so that IP/Port are loaded and saved automatically.
-     init(settingsStore: SettingsStore) {
+    init(settingsStore: SettingsStore) {
         self.settingsStore = settingsStore
 
         // Load saved IP & port from SettingsStore
@@ -95,6 +128,18 @@ public class ElecraftK4Device: ObservableObject {
         self.macroNames = settingsStore.settings.k4Macros.macroNames
         self.macroCommands = settingsStore.settings.k4Macros.macroCommands
 
+        setupSettingsPersistence()
+        setupConnectionStateObservation()
+    }
+
+    deinit {
+        // Ensure cleanup if this instance is deallocated
+        disconnect()
+    }
+    
+    // MARK: - Settings Persistence
+    
+    private func setupSettingsPersistence() {
         // Persist macroNames back into SettingsStore on change
         $macroNames
             .dropFirst()
@@ -127,10 +172,23 @@ public class ElecraftK4Device: ObservableObject {
             }
             .store(in: &cancellables)
     }
-
-    deinit {
-        // Ensure cleanup if this instance is deallocated
-        disconnect()
+    
+    private func setupConnectionStateObservation() {
+        // Update legacy isConnected property when connection state changes
+        $connectionState
+            .map { $0.isConnectedBool }
+            .assign(to: &$isConnected)
+        
+        // Update error message when connection fails
+        $connectionState
+            .sink { [weak self] state in
+                if case .failed(let message) = state {
+                    self?.connectionError = message
+                } else if state.isConnectedBool {
+                    self?.connectionError = nil
+                }
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: – Public API
@@ -138,60 +196,174 @@ public class ElecraftK4Device: ObservableObject {
     /// Attempts to open a TCP connection to the Elecraft K4.
     /// On success, sets `isConnected = true` and begins polling.
     public func connect() {
-        log("🚀 K4D: Starting connection to \(ipAddress):\(port)")
-
-        // Create a fresh TCPClient
-        client = TCPClient()
-        log("🔧 K4D: Initialized new TCPClient instance")
-        client?.onReceive = handleIncoming(data:)
-        client?.onDisconnect = handleDisconnect
-
-        // Attempt to connect
-        let success = client?.connect(host: ipAddress, port: UInt16(port)) ?? false
-        if success {
-            log("✅ K4D: TCPClient.connect(host:\(ipAddress), port:\(port)) succeeded")
-            DispatchQueue.main.async {
-                self.isConnected = true
-                self.connectionError = nil
+        guard connectionState != .connecting && connectionState != .connected else {
+            log("⚠️ Connect called but already connecting/connected")
+            return
+        }
+        
+        log("🚀 Starting connection to \(ipAddress):\(port)")
+        connectionState = .connecting
+        reconnectionAttempts = 0
+        
+        Task {
+            await performConnection()
+        }
+    }
+    
+    /// Performs the actual connection attempt with retry logic
+    @MainActor
+    private func performConnection() async {
+        do {
+            client = TCPClient()
+            setupTCPClientCallbacks()
+            
+            let success = try await client?.connect(
+                host: ipAddress,
+                port: UInt16(port),
+                timeout: 3.0,
+                maxRetries: 1
+            ) ?? false
+            
+            if success {
+                log("✅ Connection successful")
+                connectionState = .connected
+                reconnectionAttempts = 0
+                
+                // Send initial commands and start polling
+                await sendInitialCommands()
+                startPollingTimer()
+            } else {
+                handleConnectionFailure("Connection failed")
             }
-
-            // Optionally: send any “initialization” commands once connected.
-            log("ℹ️ K4D: Sending initialization command FA;")
-            sendCommand("FA;")  // Request frequency
-            log("ℹ️ K4D: Sending initialization command AI5;")
-            sendCommand("AI5;") // Request some status subset (e.g. forward/reflected)
-            log("ℹ️ K4D: Sending initialization command TM1;")
-            sendCommand("TM1;") // Request meter data
-            log("ℹ️ K4D: Sending initialization command PC;")
-            sendCommand("PC;") // Request current power setting
-            startPollingTimer()
+            
+        } catch let error as TCPClient.TCPError {
+            handleConnectionFailure(error.localizedDescription)
+        } catch {
+            handleConnectionFailure("Unexpected error: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Sets up TCP client callback handlers with proper memory management
+    private func setupTCPClientCallbacks() {
+        client?.onReceive = { [weak self] data in
+            self?.handleIncoming(data: data)
+        }
+        
+        client?.onDisconnect = { [weak self] in
+            DispatchQueue.main.async {
+                self?.handleUnexpectedDisconnection()
+            }
+        }
+        
+        client?.onStateChange = { [weak self] state in
+            DispatchQueue.main.async {
+                self?.handleTCPStateChange(state)
+            }
+        }
+    }
+    
+    /// Send initial commands immediately after connection
+    private func sendInitialCommands() async {
+        log("ℹ️ K4D: Sending initialization commands")
+        sendCommand("FA;")  // Request frequency
+        sendCommand("AI5;") // Request status subset 
+        sendCommand("TM1;") // Request meter data
+        sendCommand("PC;")  // Request current power setting
+    }
+    
+    /// Handles TCP client state changes for better connection feedback
+    private func handleTCPStateChange(_ state: TCPClient.ConnectionState) {
+        switch state {
+        case .connecting:
+            if connectionState != .connecting {
+                connectionState = .connecting
+            }
+        case .connected:
+            // Handled in performConnection
+            break
+        case .disconnected:
+            if connectionState == .connected || connectionState == .reconnecting {
+                handleUnexpectedDisconnection()
+            }
+        case .failed(let error):
+            handleConnectionFailure(error.localizedDescription)
+        }
+    }
+    
+    /// Handles connection failures with user-friendly error messages
+    private func handleConnectionFailure(_ message: String) {
+        log("❌ Connection failed: \(message)")
+        stopPollingTimer()
+        
+        client?.disconnect()
+        client = nil
+        
+        connectionState = .failed(message)
+        
+        // Schedule reconnection if this wasn't a manual disconnect
+        if reconnectionAttempts < maxReconnectionAttempts {
+            scheduleReconnection()
+        }
+    }
+    
+    /// Handles unexpected disconnections and attempts reconnection
+    private func handleUnexpectedDisconnection() {
+        guard connectionState.isConnectedBool || connectionState == .reconnecting else {
+            return // Don't reconnect if we manually disconnected
+        }
+        
+        log("🔴 Connection lost unexpectedly")
+        stopPollingTimer()
+        client = nil
+        
+        if reconnectionAttempts < maxReconnectionAttempts {
+            scheduleReconnection()
         } else {
-            log("❌ K4D: TCPClient.connect(host:\(ipAddress), port:\(port)) failed")
-            handleConnectionError()
+            connectionState = .failed("Connection lost. Maximum reconnection attempts exceeded.")
+        }
+    }
+    
+    /// Schedules automatic reconnection with progressive backoff
+    private func scheduleReconnection() {
+        reconnectionAttempts += 1
+        let delay = min(3.0 + Double(reconnectionAttempts * 2), 15.0) // Start at 5s, increase by 2s, cap at 15s
+        
+        log("🔄 Scheduling reconnection attempt \(reconnectionAttempts) in \(delay)s")
+        connectionState = .reconnecting
+        
+        reconnectionTimer?.invalidate()
+        reconnectionTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            if self.connectionState == .reconnecting {
+                Task {
+                    await self.performConnection()
+                }
+            }
         }
     }
 
     /// Stops polling, tears down the TCP connection, and sets `isConnected = false`.
     public func disconnect() {
         log("🔌 K4D: Disconnecting from \(ipAddress):\(port)")
-        log("🛑 K4D: Teardown TCPClient and clear state")
-        pollingTimer?.invalidate()
-        pollingTimer = nil
+        
+        stopPollingTimer()
+        reconnectionTimer?.invalidate()
+        reconnectionTimer = nil
 
         client?.disconnect()
-        client?.onReceive = nil
-        client?.onDisconnect = nil
         client = nil
 
-        DispatchQueue.main.async {
-            self.isConnected = false
-        }
+        connectionState = .disconnected
     }
 
-
-    /// Sends a raw command string (e.g. “FA;”, “FRxxxx;”, etc.) to the K4.
+    /// Sends a raw command string (e.g. "FA;", "FRxxxx;", etc.) to the K4.
     /// The string will be suffixed with CR before sending.
     public func sendCommand(_ command: String) {
+        guard connectionState.isConnectedBool else {
+            log("⚠️ K4D: Cannot send command - not connected")
+            return
+        }
+        
         log("📤 K4D: Sending command: \(command)")
         guard let payload = (command + "\r").data(using: .utf8) else {
             log("⚠️ K4D: Failed to encode command: \(command)")
@@ -216,18 +388,28 @@ public class ElecraftK4Device: ObservableObject {
 
     /// Starts a Timer that periodically requests updates (e.g. every 1 sec).
     private func startPollingTimer() {
-        pollingTimer?.invalidate()
+        stopPollingTimer()
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self, self.isConnected else { return }
-            // TODO: Decide which periodic commands you need. For example:
-            self.sendCommand("FA;") // update frequency every second (or adjust as needed)
+            guard let self = self, self.connectionState.isConnectedBool else { return }
+            // Request periodic updates
+            self.sendCommand("FA;") // update frequency every second
             self.sendCommand("TM1;") // update forward/reflected/SWR
         }
+        
+        if let timer = pollingTimer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+    
+    /// Stops the polling timer
+    private func stopPollingTimer() {
+        pollingTimer?.invalidate()
+        pollingTimer = nil
     }
 
     /// Called by `TCPClient` whenever raw Data arrives.
-    /// Append to `buffer` and parse out complete “;”-terminated messages.
-     func handleIncoming(data: Data) {
+    /// Append to `buffer` and parse out complete ";"-terminated messages.
+    func handleIncoming(data: Data) {
         if let incomingStr = String(data: data, encoding: .utf8) {
             log("📥 K4D: Raw incoming data chunk: '\(incomingStr)'")
         }
@@ -235,7 +417,7 @@ public class ElecraftK4Device: ObservableObject {
         guard String(data: data, encoding: .utf8) != nil else { return }
         buffer.append(data)
 
-        // Try splitting on “;” (semicolon) since K4 messages are “<CMD><payload>;”
+        // Try splitting on ";" (semicolon) since K4 messages are "<CMD><payload>;"
         let bufferStr = String(decoding: buffer, as: UTF8.self)
         log("📥 K4D: Buffer string before splitting: '\(bufferStr)'")
         let segments = bufferStr.components(separatedBy: ";")
@@ -253,12 +435,12 @@ public class ElecraftK4Device: ObservableObject {
         }
     }
 
-    /// Parses a single “<PREFIX><DATA>;” line from the K4.
+    /// Parses a single "<PREFIX><DATA>;" line from the K4.
     private func parseLine(_ lineWithSemicolon: String) {
-        // Guaranteed to include the trailing “;”
+        // Guaranteed to include the trailing ";"
         let trimmed = lineWithSemicolon.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasSuffix(";") else { return }
-        let content = String(trimmed.dropLast()) // remove “;”
+        let content = String(trimmed.dropLast()) // remove ";"
 
         log("🔍 K4D: parseLine received content: '\(content)'")
 
@@ -355,32 +537,6 @@ public class ElecraftK4Device: ObservableObject {
         }
     }
 
-    /// Called if initial `connect(host:port:)` failed.
-    private func handleConnectionError() {
-        log("❌ K4D: Connection failed to \(ipAddress):\(port)")
-        pollingTimer?.invalidate()
-        pollingTimer = nil
-        client?.disconnect()
-        client = nil
-
-        DispatchQueue.main.async {
-            self.isConnected = false
-            self.connectionError = "Unable to reach device at \(self.ipAddress):\(self.port)"
-        }
-    }
-
-    /// Called if the TCPClient reports a disconnect (e.g. remote closed).
-    private func handleDisconnect() {
-        log("🔴 K4D: Connection lost")
-        pollingTimer?.invalidate()
-        pollingTimer = nil
-        client = nil
-
-        DispatchQueue.main.async {
-            self.isConnected = false
-            self.connectionError = "Connection lost"
-        }
-    }
     /// A formatted string representing the frequency in "MHz.kHz.Hz" (e.g. "007.000.000").
     public var formattedFrequency: String {
         guard frequencyHz > 0 else { return "" }
