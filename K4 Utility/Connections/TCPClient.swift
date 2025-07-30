@@ -192,7 +192,14 @@ class TCPClient {
             }
             
             // Return the first result and cancel other tasks
-            defer { group.cancelAll() }
+            defer { 
+                group.cancelAll()
+                // Clean up connection on timeout/failure
+                if self.connection?.state != .ready {
+                    self.connection?.cancel()
+                    self.connection = nil
+                }
+            }
             return try await group.next() ?? false
         }
     }
@@ -231,6 +238,10 @@ class TCPClient {
                     
                 case .failed(let error):
                     Self.log("Connection failed with error: \(error)")
+                    // Always clean up failed connection
+                    self?.connection?.cancel()
+                    self?.connection = nil
+                    
                     if hasResumed.compareAndSet(from: false, to: true) {
                         continuation.resume(returning: false)
                     } else {
@@ -243,6 +254,9 @@ class TCPClient {
                     
                 case .cancelled:
                     Self.log("Connection was cancelled")
+                    // Clean up cancelled connection
+                    self?.connection = nil
+                    
                     if hasResumed.compareAndSet(from: false, to: true) {
                         continuation.resume(returning: false)
                     } else {

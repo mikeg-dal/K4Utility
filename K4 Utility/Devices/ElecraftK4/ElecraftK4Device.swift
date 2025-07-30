@@ -110,7 +110,7 @@ public class ElecraftK4Device: ObservableObject {
     /// Reconnection management
     private var reconnectionTimer: Timer?
     private var reconnectionAttempts = 0
-    private let maxReconnectionAttempts = 5
+    private let maxReconnectionAttempts = 2
 
     // MARK: – Initialization
 
@@ -201,6 +201,10 @@ public class ElecraftK4Device: ObservableObject {
             return
         }
         
+        // Cancel any existing reconnection timer and reset state for manual connection
+        reconnectionTimer?.invalidate()
+        reconnectionTimer = nil
+        
         log("🚀 Starting connection to \(ipAddress):\(port)")
         connectionState = .connecting
         reconnectionAttempts = 0
@@ -214,6 +218,10 @@ public class ElecraftK4Device: ObservableObject {
     @MainActor
     private func performConnection() async {
         do {
+            // Ensure any existing client is fully disconnected
+            client?.disconnect()
+            client = nil
+            
             client = TCPClient()
             setupTCPClientCallbacks()
             
